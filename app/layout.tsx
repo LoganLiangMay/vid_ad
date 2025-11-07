@@ -20,12 +20,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" className="dark" suppressHydrationWarning>
       <body className="font-sans">
         <AuthProvider>
-          <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
-            {children}
-          </div>
+          {children}
         </AuthProvider>
       </body>
     </html>

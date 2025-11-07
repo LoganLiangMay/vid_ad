@@ -2,7 +2,6 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import Image from 'next/image';
 
 interface SceneImage {
   id: string;
@@ -275,12 +274,27 @@ function SceneReviewContent() {
               >
                 {/* Image */}
                 <div className="aspect-[9/16] relative bg-gray-100">
-                  <Image
-                    src={image.url}
-                    alt={`Scene ${image.sceneNumber}`}
-                    fill
-                    className="object-cover"
-                  />
+                  {image.url ? (
+                    <img
+                      src={image.url}
+                      alt={`Scene ${image.sceneNumber}`}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        console.error('Image load error:', image.url);
+                        e.currentTarget.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="711"><rect width="400" height="711" fill="%23f3f4f6"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="%239ca3af" font-family="sans-serif" font-size="16">Failed to load</text></svg>';
+                        e.currentTarget.className = 'w-full h-full object-contain p-8';
+                      }}
+                      onLoad={() => console.log(`✅ Image ${image.sceneNumber} loaded successfully`)}
+                      loading="lazy"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <div className="text-center text-gray-400">
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-2"></div>
+                        <p className="text-sm">Loading...</p>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Scene Number Badge */}
                   <div className="absolute top-3 left-3 bg-purple-600 text-white px-3 py-1 rounded-full text-sm font-bold">

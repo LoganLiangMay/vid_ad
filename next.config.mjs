@@ -25,12 +25,25 @@ const nextConfig = {
         hostname: '**.s3.amazonaws.com',
       },
       {
+        protocol: 'https',
+        hostname: 'replicate.delivery',
+      },
+      {
+        protocol: 'https',
+        hostname: 'pbxt.replicate.delivery',
+      },
+      {
+        protocol: 'https',
+        hostname: '**.replicate.delivery',
+      },
+      {
         protocol: 'http',
         hostname: 'localhost',
       },
     ],
     formats: ['image/avif', 'image/webp'],
     minimumCacheTTL: 60,
+    unoptimized: true, // Required for static export
   },
 
   // Environment variables

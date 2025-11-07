@@ -43,6 +43,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.regenerateScene = exports.generateScenes = void 0;
 const functions = __importStar(require("firebase-functions/v1"));
 const replicate_1 = __importDefault(require("replicate"));
+const aiSceneGenerator_1 = require("./aiSceneGenerator");
 // ============================================
 // GENERATE SCENES FUNCTION
 // ============================================
@@ -79,18 +80,47 @@ exports.generateScenes = functions
         }
         let images;
         let enhancedWithFormData = false;
-        // For now, use simple prompt generation
-        // TODO: Import and use the LangChain integration from lib/
+        let aiPowered = false;
+        // Initialize AI Scene Generator
         if (formData && typeof formData === 'object') {
-            console.log('🎨 Generating with form data (simple mode)');
+            console.log('🎨 Generating with AI-powered form data');
             enhancedWithFormData = true;
-            // Build simple prompt from form data
-            const userPrompt = `${formData.productName}: ${formData.productDescription}`;
-            images = await generateSimpleScenes(userPrompt, numberOfScenes);
+            try {
+                const generator = new aiSceneGenerator_1.AISceneGenerator();
+                const userPrompt = `${formData.productName}: ${formData.productDescription}`;
+                // Use AI generator with enhanced context
+                images = await generator.generateSceneImages(userPrompt, numberOfScenes, {
+                    productName: formData.productName,
+                    productDescription: formData.productDescription,
+                    keywords: formData.keywords,
+                    brandTone: formData.brandTone,
+                    primaryColor: formData.primaryColor,
+                    targetAudience: formData.targetAudience,
+                    callToAction: formData.callToAction,
+                    orientation: formData.orientation,
+                    duration: formData.duration,
+                });
+                aiPowered = !!process.env.OPENAI_API_KEY;
+                console.log(`✅ AI-generated ${images.length} scenes successfully`);
+            }
+            catch (error) {
+                console.error('❌ AI generation failed, falling back to simple mode:', error);
+                // Fallback to simple prompts
+                const userPrompt = `${formData.productName}: ${formData.productDescription}`;
+                images = await generateSimpleScenes(userPrompt, numberOfScenes);
+            }
         }
         else if (prompt && typeof prompt === 'string') {
-            console.log('📝 Generating with simple prompt');
-            images = await generateSimpleScenes(prompt, numberOfScenes);
+            console.log('📝 Generating with AI-enhanced prompt');
+            try {
+                const generator = new aiSceneGenerator_1.AISceneGenerator();
+                images = await generator.generateSceneImages(prompt, numberOfScenes);
+                aiPowered = !!process.env.OPENAI_API_KEY;
+            }
+            catch (error) {
+                console.error('❌ AI generation failed, falling back to simple mode:', error);
+                images = await generateSimpleScenes(prompt, numberOfScenes);
+            }
         }
         else {
             res.status(400).json({ error: 'Either prompt or formData is required' });
@@ -100,7 +130,7 @@ exports.generateScenes = functions
             success: true,
             images: images,
             count: images.length,
-            aiPowered: !!process.env.OPENAI_API_KEY,
+            aiPowered: aiPowered,
             enhancedWithFormData: enhancedWithFormData,
         });
     }

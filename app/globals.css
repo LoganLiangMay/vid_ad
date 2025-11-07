@@ -24,24 +24,40 @@
 }
 
 .dark {
-  --background: 222.2 84% 4.9%;
-  --foreground: 210 40% 98%;
-  --card: 222.2 84% 4.9%;
-  --card-foreground: 210 40% 98%;
-  --popover: 222.2 84% 4.9%;
-  --popover-foreground: 210 40% 98%;
+  /* ClipForge Dark Mode - #0a0e27 background */
+  --background: 240 61% 10%;
+  --foreground: 0 0% 98%;
+
+  /* Cards and UI elements - #252b42 */
+  --card: 240 24% 20%;
+  --card-foreground: 0 0% 98%;
+
+  --popover: 240 24% 20%;
+  --popover-foreground: 0 0% 98%;
+
+  /* Primary accent color */
   --primary: 217.2 91.2% 59.8%;
-  --primary-foreground: 222.2 47.4% 11.2%;
-  --secondary: 142.1 76.2% 36.3%;
-  --secondary-foreground: 355.7 100% 97.3%;
-  --muted: 217.2 32.6% 17.5%;
-  --muted-foreground: 215 20.2% 65.1%;
-  --accent: 217.2 32.6% 17.5%;
-  --accent-foreground: 210 40% 98%;
-  --destructive: 0 62.8% 30.6%;
-  --destructive-foreground: 210 40% 98%;
-  --border: 217.2 32.6% 17.5%;
-  --input: 217.2 32.6% 17.5%;
+  --primary-foreground: 0 0% 98%;
+
+  /* Secondary UI - #252b42 */
+  --secondary: 240 24% 20%;
+  --secondary-foreground: 0 0% 98%;
+
+  /* Muted elements - #a1a8c5 */
+  --muted: 240 24% 20%;
+  --muted-foreground: 240 23% 70%;
+
+  /* Accent */
+  --accent: 240 24% 20%;
+  --accent-foreground: 0 0% 98%;
+
+  /* Destructive - #c41c3b */
+  --destructive: 349 76% 44%;
+  --destructive-foreground: 0 0% 98%;
+
+  /* Borders - #252b42 */
+  --border: 240 24% 20%;
+  --input: 240 24% 20%;
   --ring: 217.2 91.2% 59.8%;
 }
 
