@@ -56,8 +56,16 @@ export async function middleware(request: NextRequest) {
   const sessionCookie = request.cookies.get('__session')?.value ||
                        request.cookies.get('authToken')?.value;
 
+  console.log('🛡️ [Middleware]', {
+    pathname,
+    isProtectedRoute,
+    hasSessionCookie: !!sessionCookie,
+    cookiePreview: sessionCookie ? sessionCookie.substring(0, 20) + '...' : 'none'
+  });
+
   // If it's a protected route and no session cookie exists, redirect to login
   if (isProtectedRoute && !sessionCookie) {
+    console.log('❌ [Middleware] No session cookie, redirecting to login');
     const url = request.nextUrl.clone();
     url.pathname = '/auth/login';
 
@@ -71,10 +79,13 @@ export async function middleware(request: NextRequest) {
 
   // If user is logged in and tries to access auth pages, redirect to dashboard
   if (sessionCookie && (pathname === '/auth/login' || pathname === '/auth/signup')) {
+    console.log('✅ [Middleware] User has session cookie on auth page, redirecting to dashboard');
     const url = request.nextUrl.clone();
     url.pathname = '/dashboard';
     return NextResponse.redirect(url);
   }
+
+  console.log('✅ [Middleware] Allowing request to proceed');
 
   // For API routes, return 401 if not authenticated
   if (pathname.startsWith('/api/') && !pathname.startsWith('/api/auth') && !sessionCookie) {

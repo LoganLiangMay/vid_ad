@@ -4,31 +4,39 @@ import { cookies } from 'next/headers';
 
 export async function POST(request: NextRequest) {
   try {
+    console.log('🍪 [API /auth/session] Received session creation request');
     const { idToken } = await request.json();
 
     if (!idToken) {
+      console.log('❌ [API /auth/session] No ID token provided');
       return NextResponse.json(
         { error: 'ID token is required' },
         { status: 400 }
       );
     }
 
+    console.log('🔑 [API /auth/session] Verifying ID token...');
     // Verify the ID token
     const decodedToken = await adminAuth.verifyIdToken(idToken);
 
     if (!decodedToken) {
+      console.log('❌ [API /auth/session] Invalid ID token');
       return NextResponse.json(
         { error: 'Invalid ID token' },
         { status: 401 }
       );
     }
 
+    console.log('✅ [API /auth/session] Token verified for user:', decodedToken.email);
+
     // Set session cookie (5 days expiry)
     const expiresIn = 60 * 60 * 24 * 5 * 1000; // 5 days in milliseconds
+    console.log('🍪 [API /auth/session] Creating session cookie...');
     const sessionCookie = await adminAuth.createSessionCookie(idToken, {
       expiresIn,
     });
 
+    console.log('✅ [API /auth/session] Session cookie created, setting in response');
     // Set the cookie
     const cookieStore = await cookies();
     cookieStore.set('__session', sessionCookie, {
@@ -39,12 +47,13 @@ export async function POST(request: NextRequest) {
       sameSite: 'lax',
     });
 
+    console.log('✅ [API /auth/session] Session cookie set successfully');
     return NextResponse.json(
       { success: true, uid: decodedToken.uid },
       { status: 200 }
     );
   } catch (error: any) {
-    console.error('Session creation error:', error);
+    console.error('❌ [API /auth/session] Session creation error:', error);
     return NextResponse.json(
       { error: error.message || 'Failed to create session' },
       { status: 500 }

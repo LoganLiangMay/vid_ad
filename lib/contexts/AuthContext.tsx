@@ -141,7 +141,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Create session cookie via API
   const createSessionCookie = async (user: User) => {
     try {
+      console.log('🍪 [AuthContext] Creating session cookie for user:', user.email);
       const idToken = await user.getIdToken();
+      console.log('🔑 [AuthContext] Got ID token, calling /api/auth/session');
+
       const response = await fetch('/api/auth/session', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -149,10 +152,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
 
       if (!response.ok) {
-        console.error('Failed to create session cookie');
+        console.error('❌ [AuthContext] Failed to create session cookie:', response.status);
+        const error = await response.text();
+        console.error('Error details:', error);
+      } else {
+        console.log('✅ [AuthContext] Session cookie created successfully');
       }
     } catch (err) {
-      console.error('Error creating session cookie:', err);
+      console.error('❌ [AuthContext] Error creating session cookie:', err);
     }
   };
 
@@ -319,27 +326,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Handle redirect result from OAuth providers FIRST, before onAuthStateChanged
     const initAuth = async () => {
       try {
+        console.log('🔄 [AuthContext] Checking for OAuth redirect result...');
         // Check for OAuth redirect result
         const result = await getRedirectResult(auth);
 
         if (result && result.user) {
-          console.log('✅ OAuth redirect successful, user:', result.user.email);
+          console.log('✅ [AuthContext] OAuth redirect successful, user:', result.user.email);
 
           // Create session cookie for middleware
+          console.log('🍪 [AuthContext] About to create session cookie...');
           await createSessionCookie(result.user);
+          console.log('✅ [AuthContext] Session cookie creation completed');
 
           // Create or update user profile (don't block on this)
           createUserProfile(result.user).catch(err => {
-            console.error('Error creating user profile:', err);
+            console.error('❌ [AuthContext] Error creating user profile:', err);
           });
 
           localStorage.setItem('sessionStartTime', new Date().toISOString());
 
           // Mark that we've successfully handled OAuth
           localStorage.setItem('oauthSuccess', 'true');
+          console.log('✅ [AuthContext] OAuth flow completed, marked as success');
+        } else {
+          console.log('ℹ️ [AuthContext] No OAuth redirect result found');
         }
       } catch (err: any) {
-        console.error('OAuth redirect error:', err);
+        console.error('❌ [AuthContext] OAuth redirect error:', err);
         setError(err.message || 'Failed to sign in with OAuth provider');
       }
     };

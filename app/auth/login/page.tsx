@@ -21,18 +21,23 @@ function LoginContent() {
 
   // Redirect to dashboard if user is authenticated
   useEffect(() => {
+    console.log('🔍 [LoginPage] Auth state:', { authLoading, currentUser: currentUser?.email });
+
     if (!authLoading && currentUser) {
       const returnUrl = searchParams.get('returnUrl') || '/dashboard';
 
       // Check if this is an OAuth redirect completion
       const isOAuthSuccess = typeof window !== 'undefined' && localStorage.getItem('oauthSuccess');
 
+      console.log('🔍 [LoginPage] OAuth success flag:', isOAuthSuccess);
+      console.log('🚀 [LoginPage] User is authenticated, navigating to:', returnUrl);
+
       if (isOAuthSuccess) {
         // Clear the flag
         localStorage.removeItem('oauthSuccess');
         localStorage.removeItem('authRedirectUrl');
 
-        console.log('🚀 OAuth redirect complete, navigating to:', returnUrl);
+        console.log('✅ [LoginPage] OAuth redirect complete, cleared flags');
       }
 
       // Navigate to dashboard
