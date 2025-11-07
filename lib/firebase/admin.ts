@@ -62,7 +62,7 @@ export const adminAuth = {
 };
 
 export const adminDb = new Proxy({} as admin.firestore.Firestore, {
-  get(target, prop) {
+  get(_target, prop) {
     initializeAdmin();
     const db = admin.firestore();
     return (db as any)[prop];
@@ -70,7 +70,7 @@ export const adminDb = new Proxy({} as admin.firestore.Firestore, {
 });
 
 export const adminStorage = new Proxy({} as admin.storage.Storage, {
-  get(target, prop) {
+  get(_target, prop) {
     initializeAdmin();
     const storage = admin.storage();
     return (storage as any)[prop];
