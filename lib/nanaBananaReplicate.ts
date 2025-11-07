@@ -4,7 +4,13 @@
 // ============================================
 
 import Replicate from 'replicate';
-import { generateScenePromptsWithAI, refineScenePromptWithAI } from './scenePromptAgent';
+import {
+  generateScenePromptsWithAI,
+  generateScenePromptsFromFormData,
+  refineScenePromptWithAI,
+  type EnhancedSceneContext,
+} from './scenePromptAgent';
+import type { AdGenerationFormData } from './schemas/adGenerationSchema';
 
 export interface SceneImage {
   id: string;
@@ -73,7 +79,8 @@ async function generateImageWithNanaBanana(
 
 export async function generateSceneImages(
   userPrompt: string,
-  numberOfScenes: number = 5
+  numberOfScenes: number = 5,
+  enhancedContext?: EnhancedSceneContext
 ): Promise<SceneImage[]> {
   console.log('🚀 Starting AI-powered scene generation...');
   console.log(`📝 User prompt: "${userPrompt}"`);
@@ -81,7 +88,11 @@ export async function generateSceneImages(
 
   // Step 1: Use LangChain agent to generate intelligent scene prompts
   console.log('🤖 Generating scene prompts with AI...');
-  const aiScenes = await generateScenePromptsWithAI(userPrompt, numberOfScenes);
+  const aiScenes = await generateScenePromptsWithAI(
+    userPrompt,
+    numberOfScenes,
+    enhancedContext
+  );
 
   console.log('✅ AI scene prompts generated:');
   aiScenes.scenes.forEach((scene) => {
@@ -89,6 +100,47 @@ export async function generateSceneImages(
   });
 
   // Step 2: Generate images in parallel using AI-optimized prompts
+  console.log('🍌 Generating images with Nano Banana...');
+  const imagePromises = aiScenes.scenes.map((scene) =>
+    generateImageWithNanaBanana(scene.imagePrompt, scene.sceneNumber, {
+      description: scene.description,
+      cameraAngle: scene.cameraAngle,
+      lighting: scene.lighting,
+      mood: scene.mood,
+    })
+  );
+
+  const images = await Promise.all(imagePromises);
+
+  console.log(`✅ All ${numberOfScenes} images generated successfully!`);
+
+  return images;
+}
+
+// ============================================
+// GENERATE SCENE IMAGES FROM FORM DATA
+// Main entry point for full form-based generation
+// ============================================
+
+export async function generateSceneImagesFromFormData(
+  formData: AdGenerationFormData,
+  numberOfScenes: number = 5
+): Promise<SceneImage[]> {
+  console.log('🚀 Starting scene generation from form data...');
+  console.log(`📦 Product: ${formData.productName}`);
+  console.log(`🎨 Brand tone: ${formData.brandTone}`);
+  console.log(`🎬 Number of scenes: ${numberOfScenes}`);
+
+  // Step 1: Generate AI scene prompts from form data
+  console.log('🤖 Generating enhanced scene prompts...');
+  const aiScenes = await generateScenePromptsFromFormData(formData, numberOfScenes);
+
+  console.log('✅ Enhanced AI scene prompts generated:');
+  aiScenes.scenes.forEach((scene) => {
+    console.log(`  Scene ${scene.sceneNumber}: ${scene.description}`);
+  });
+
+  // Step 2: Generate images in parallel
   console.log('🍌 Generating images with Nano Banana...');
   const imagePromises = aiScenes.scenes.map((scene) =>
     generateImageWithNanaBanana(scene.imagePrompt, scene.sceneNumber, {
@@ -181,6 +233,7 @@ export async function generateSceneImagesWithFallback(
 
 export default {
   generateSceneImages,
+  generateSceneImagesFromFormData,
   generateSceneImagesWithFallback,
   regenerateScene,
 };
