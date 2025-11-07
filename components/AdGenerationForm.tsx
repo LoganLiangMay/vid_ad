@@ -9,6 +9,8 @@ import BrandSettingsStep from './form/BrandSettingsStep';
 import VideoConfigStep from './form/VideoConfigStep';
 import AdditionalOptionsStep from './form/AdditionalOptionsStep';
 import ReviewStep from './form/ReviewStep';
+import ConceptSelectionStep from './form/ConceptSelectionStep';
+import StoryboardStep from './form/StoryboardStep';
 
 interface AdGenerationFormProps {
   form: UseFormReturn<AdGenerationFormData>;
@@ -21,7 +23,9 @@ const steps = [
   { id: 2, name: 'Brand Settings', description: 'Brand tone and style' },
   { id: 3, name: 'Video Config', description: 'Video specifications' },
   { id: 4, name: 'Additional Options', description: 'Extra features' },
-  { id: 5, name: 'Review', description: 'Review and submit' },
+  { id: 5, name: 'Review', description: 'Review form data' },
+  { id: 6, name: 'Concept', description: 'Select creative concept' },
+  { id: 7, name: 'Storyboard', description: 'Review scene images' },
 ];
 
 export default function AdGenerationForm({
@@ -30,6 +34,8 @@ export default function AdGenerationForm({
   isSubmitting,
 }: AdGenerationFormProps) {
   const [currentStep, setCurrentStep] = useState(1);
+  const [selectedConcept, setSelectedConcept] = useState<any>(null);
+  const [storyboardImages, setStoryboardImages] = useState<any[]>([]);
 
   const handleNext = async () => {
     // Validate current step fields before proceeding
@@ -47,6 +53,13 @@ export default function AdGenerationForm({
         break;
       case 4:
         // Optional fields, no validation needed
+        break;
+      case 6:
+        // Concept selection is required
+        if (!selectedConcept) {
+          alert('Please select a concept before proceeding');
+          return;
+        }
         break;
     }
 
@@ -105,7 +118,15 @@ export default function AdGenerationForm({
   };
 
   const handleSubmit = form.handleSubmit(
-    onSubmit,
+    (data) => {
+      // Attach concept and storyboard data
+      const submissionData = {
+        ...data,
+        selectedConcept,
+        storyboardImages,
+      };
+      onSubmit(submissionData);
+    },
     (errors) => {
       console.error('❌ Form validation errors:', errors);
       alert('Please fix the following errors:\n\n' +
@@ -142,6 +163,21 @@ export default function AdGenerationForm({
           {currentStep === 3 && <VideoConfigStep form={form} />}
           {currentStep === 4 && <AdditionalOptionsStep form={form} />}
           {currentStep === 5 && <ReviewStep form={form} />}
+          {currentStep === 6 && (
+            <ConceptSelectionStep
+              formData={form.getValues()}
+              selectedConcept={selectedConcept}
+              onSelectConcept={setSelectedConcept}
+            />
+          )}
+          {currentStep === 7 && (
+            <StoryboardStep
+              formData={form.getValues()}
+              selectedConcept={selectedConcept}
+              images={storyboardImages}
+              onImagesChange={setStoryboardImages}
+            />
+          )}
 
           <div className="flex justify-between pt-6 border-t">
             <button

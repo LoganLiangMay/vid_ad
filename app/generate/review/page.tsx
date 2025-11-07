@@ -206,6 +206,81 @@ function SceneReviewContent() {
     }
   };
 
+  const handleSaveCampaign = async () => {
+    setIsLoading(true);
+
+    try {
+      const selected = images.filter((img) => selectedImages.has(img.id));
+
+      if (selected.length === 0) {
+        alert('Please select at least one scene to save');
+        setIsLoading(false);
+        return;
+      }
+
+      const campaignId = searchParams.get('campaignId');
+      if (!campaignId) {
+        alert('Campaign ID not found');
+        setIsLoading(false);
+        return;
+      }
+
+      // Convert image URLs to blobs and prepare FormData
+      const formDataObj = new FormData();
+
+      // Add campaign metadata
+      const campaignData = {
+        name: formData?.productName || 'Untitled Campaign',
+        description: formData?.keyMessage || '',
+        scenes: selected.map((img) => ({
+          sceneNumber: img.sceneNumber,
+          prompt: img.prompt,
+          duration: Math.floor((formData?.duration || 7) / selected.length),
+          visualDescription: img.description || '',
+          voiceoverText: img.description || '',
+        })),
+        totalScenes: selected.length,
+        status: 'draft' as const,
+      };
+
+      formDataObj.append('campaignData', JSON.stringify(campaignData));
+
+      // Download and attach scene images
+      for (const img of selected) {
+        try {
+          const response = await fetch(img.url);
+          const blob = await response.blob();
+          const file = new File([blob], `scene-${img.sceneNumber}.jpg`, {
+            type: 'image/jpeg',
+          });
+          formDataObj.append(`sceneImage_${img.sceneNumber}`, file);
+        } catch (error) {
+          console.error(`Failed to fetch image for scene ${img.sceneNumber}:`, error);
+        }
+      }
+
+      // Save campaign
+      const saveResponse = await fetch('/api/campaigns/save', {
+        method: 'POST',
+        body: formDataObj,
+      });
+
+      if (!saveResponse.ok) {
+        const errorData = await saveResponse.json();
+        throw new Error(errorData.error || 'Failed to save campaign');
+      }
+
+      const result = await saveResponse.json();
+
+      alert(`Campaign saved successfully! ID: ${result.campaign.id}`);
+    } catch (error) {
+      console.error('Save campaign error:', error);
+      alert(`Failed to save campaign: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   if (isGenerating) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 flex items-center justify-center p-6">
@@ -376,22 +451,35 @@ function SceneReviewContent() {
             ))}
           </div>
 
-          {/* Proceed Button */}
+          {/* Action Buttons */}
           <div className="border-t pt-6">
             <div className="max-w-2xl mx-auto">
-              <p className="text-center text-gray-600 mb-4">
+              <p className="text-center text-foreground mb-4">
                 {selectedImages.size} scene{selectedImages.size !== 1 ? 's' : ''} selected
               </p>
-              <button
-                onClick={handleProceedToVideo}
-                disabled={selectedImages.size < 2}
-                className="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white py-4 rounded-lg font-semibold text-lg hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Create Video from Selected Scenes →
-              </button>
-              <p className="text-sm text-gray-500 text-center mt-3">
-                Next: We'll convert these images into a {formData?.duration || 7}-second
-                video
+
+              <div className="space-y-3">
+                {/* Save Campaign Button */}
+                <button
+                  onClick={handleSaveCampaign}
+                  disabled={isLoading || selectedImages.size === 0}
+                  className="w-full bg-card border-2 border-primary text-primary py-4 rounded-lg font-semibold text-lg hover:bg-primary hover:text-primary-foreground transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isLoading ? '💾 Saving Campaign...' : '💾 Save Campaign to Library'}
+                </button>
+
+                {/* Create Video Button */}
+                <button
+                  onClick={handleProceedToVideo}
+                  disabled={selectedImages.size < 2}
+                  className="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white py-4 rounded-lg font-semibold text-lg hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Create Video from Selected Scenes →
+                </button>
+              </div>
+
+              <p className="text-sm text-muted-foreground text-center mt-3">
+                Save your campaign to access it later, or proceed to create a video
               </p>
             </div>
           </div>

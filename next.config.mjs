@@ -1,10 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Firebase Hosting compatibility - static export
-  output: 'export',
-
-  // Add trailing slashes for proper routing with static export
-  trailingSlash: true,
+  // Dynamic rendering enabled for API routes and authentication
+  // Note: Deploy with Firebase Functions or Cloud Run for full functionality
 
   // Strict mode for better development experience
   reactStrictMode: true,
@@ -43,7 +40,7 @@ const nextConfig = {
     ],
     formats: ['image/avif', 'image/webp'],
     minimumCacheTTL: 60,
-    unoptimized: true, // Required for static export
+    unoptimized: false, // Enable Next.js image optimization
   },
 
   // Environment variables

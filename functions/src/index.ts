@@ -13,6 +13,7 @@ export * from './replicateVoice';
 export * from './campaigns';
 export * from './s3Upload';
 export * from './sceneGeneration';
+export * from './conceptGeneration';
 
 // Health check function
 export const healthCheck = functions.https.onRequest(async (_req, res) => {

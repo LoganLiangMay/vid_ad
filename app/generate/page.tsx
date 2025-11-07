@@ -91,11 +91,14 @@ export default function GeneratePage() {
       const campaignId = crypto.randomUUID();
       console.log('🆔 Generated campaign ID:', campaignId);
 
-      // Save campaign data with unique key
+      // Save campaign data with unique key including concept and storyboard
       const campaignData = {
         id: campaignId,
         createdAt: Date.now(),
-        ...data
+        ...data,
+        // Include concept and storyboard if present
+        selectedConcept: (data as any).selectedConcept,
+        storyboardImages: (data as any).storyboardImages,
       };
 
       const campaignKey = `campaign_${campaignId}`;
@@ -125,14 +128,15 @@ export default function GeneratePage() {
       // Clear draft after successful submission
       localStorage.removeItem('adGenerationDraft');
 
-      console.log('✅ Campaign data saved, redirecting to scene review page...');
+      console.log('✅ Campaign data saved, redirecting to video generation...');
 
       // Small delay to ensure state updates and show loading state
       await new Promise(resolve => setTimeout(resolve, 500));
 
-      // Redirect to scene review page with campaign ID
-      console.log('🔄 Navigating to /generate/review/ with campaign ID');
-      window.location.href = `/generate/review/?campaignId=${campaignId}`;
+      // Redirect to video generation/results page with campaign ID
+      // (Storyboard review is now part of the form flow)
+      console.log('🔄 Navigating to /generate/results/ with campaign ID');
+      window.location.href = `/generate/results/?campaignId=${campaignId}`;
     } catch (error) {
       console.error('❌ Generation error:', error);
       alert('Error preparing video generation. Please try again.');
