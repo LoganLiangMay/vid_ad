@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import { getAdminAuth } from '@/lib/firebase/admin';
+import { adminAuth } from '@/lib/firebase/admin';
 
 export async function POST(request: NextRequest) {
   try {
@@ -14,9 +14,6 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-
-    console.log('🔑 [API /auth/session] Getting admin auth...');
-    const adminAuth = getAdminAuth();
 
     console.log('🔑 [API /auth/session] Verifying ID token...');
     // Verify the ID token

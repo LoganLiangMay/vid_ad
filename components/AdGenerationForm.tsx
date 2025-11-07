@@ -21,11 +21,11 @@ interface AdGenerationFormProps {
 const steps = [
   { id: 1, name: 'Product Info', description: 'Basic product details' },
   { id: 2, name: 'Brand Settings', description: 'Brand tone and style' },
-  { id: 3, name: 'Video Config', description: 'Video specifications' },
-  { id: 4, name: 'Additional Options', description: 'Extra features' },
-  { id: 5, name: 'Review', description: 'Review form data' },
-  { id: 6, name: 'Concept', description: 'Select creative concept' },
-  { id: 7, name: 'Storyboard', description: 'Review scene images' },
+  { id: 3, name: 'Additional Options', description: 'Extra features' },
+  { id: 4, name: 'Review', description: 'Review form data' },
+  { id: 5, name: 'Concept', description: 'Select creative concept' },
+  { id: 6, name: 'Storyboard', description: 'Review scene images' },
+  { id: 7, name: 'Video Config', description: 'Video specifications' },
 ];
 
 export default function AdGenerationForm({
@@ -37,6 +37,7 @@ export default function AdGenerationForm({
   const [creativeDirection, setCreativeDirection] = useState('');
   const [selectedConcept, setSelectedConcept] = useState<any>(null);
   const [storyboardImages, setStoryboardImages] = useState<any[]>([]);
+  const [numberOfScenes, setNumberOfScenes] = useState(5); // Default 5 scenes
 
   const handleNext = async () => {
     // Validate current step fields before proceeding
@@ -50,17 +51,17 @@ export default function AdGenerationForm({
         fieldsToValidate = ['brandTone', 'primaryColor'];
         break;
       case 3:
-        fieldsToValidate = ['variations', 'duration', 'orientation', 'resolution', 'frameRate', 'videoModel'];
-        break;
-      case 4:
         // Optional fields, no validation needed
         break;
-      case 6:
+      case 5:
         // Concept selection is required
         if (!selectedConcept) {
           alert('Please select a concept before proceeding');
           return;
         }
+        break;
+      case 7:
+        fieldsToValidate = ['variations', 'duration', 'orientation', 'resolution', 'frameRate', 'videoModel'];
         break;
     }
 
@@ -99,7 +100,7 @@ export default function AdGenerationForm({
         case 2:
           fieldsToValidate = ['brandTone', 'primaryColor'];
           break;
-        case 3:
+        case 7:
           fieldsToValidate = ['variations', 'duration', 'orientation', 'resolution', 'frameRate', 'videoModel'];
           break;
       }
@@ -161,31 +162,34 @@ export default function AdGenerationForm({
         <form onSubmit={handleSubmit} className="space-y-6">
           {currentStep === 1 && <ProductInfoStep form={form} />}
           {currentStep === 2 && <BrandSettingsStep form={form} />}
-          {currentStep === 3 && <VideoConfigStep form={form} />}
-          {currentStep === 4 && <AdditionalOptionsStep form={form} />}
-          {currentStep === 5 && (
+          {currentStep === 3 && <AdditionalOptionsStep form={form} />}
+          {currentStep === 4 && (
             <ReviewStep
               form={form}
               creativeDirection={creativeDirection}
               onCreativeDirectionChange={setCreativeDirection}
             />
           )}
-          {currentStep === 6 && (
+          {currentStep === 5 && (
             <ConceptSelectionStep
               formData={form.getValues()}
               creativeDirection={creativeDirection}
               selectedConcept={selectedConcept}
               onSelectConcept={setSelectedConcept}
+              numberOfScenes={numberOfScenes}
+              onNumberOfScenesChange={setNumberOfScenes}
             />
           )}
-          {currentStep === 7 && (
+          {currentStep === 6 && (
             <StoryboardStep
               formData={form.getValues()}
               selectedConcept={selectedConcept}
               images={storyboardImages}
               onImagesChange={setStoryboardImages}
+              numberOfScenes={numberOfScenes}
             />
           )}
+          {currentStep === 7 && <VideoConfigStep form={form} />}
 
           <div className="flex justify-between pt-6 border-t">
             <button

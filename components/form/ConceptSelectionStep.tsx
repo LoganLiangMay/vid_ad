@@ -17,6 +17,8 @@ interface ConceptSelectionStepProps {
   creativeDirection: string;
   selectedConcept: Concept | null;
   onSelectConcept: (concept: Concept) => void;
+  numberOfScenes: number;
+  onNumberOfScenesChange: (num: number) => void;
 }
 
 export default function ConceptSelectionStep({
@@ -24,6 +26,8 @@ export default function ConceptSelectionStep({
   creativeDirection,
   selectedConcept,
   onSelectConcept,
+  numberOfScenes,
+  onNumberOfScenesChange,
 }: ConceptSelectionStepProps) {
   const [concepts, setConcepts] = useState<Concept[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -124,6 +128,70 @@ export default function ConceptSelectionStep({
         </h2>
         <p className="text-gray-600">
           Choose the concept that best captures your vision for "{formData.productName}"
+        </p>
+      </div>
+
+      {/* Number of Scenes Selection */}
+      <div className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-xl p-6 border-2 border-purple-200">
+        <label className="block mb-4">
+          <span className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+            🎬 Number of Scenes
+          </span>
+          <span className="text-sm text-gray-600 mt-1 block">
+            Choose how many scenes you want to generate for your video storyboard
+          </span>
+        </label>
+
+        <div className="flex items-center gap-6">
+          {/* Number Input */}
+          <div className="flex-1">
+            <input
+              type="range"
+              min="3"
+              max="10"
+              value={numberOfScenes}
+              onChange={(e) => onNumberOfScenesChange(parseInt(e.target.value))}
+              className="w-full h-2 bg-purple-200 rounded-lg appearance-none cursor-pointer accent-purple-600"
+            />
+            <div className="flex justify-between text-xs text-gray-500 mt-1">
+              <span>3 scenes</span>
+              <span>10 scenes</span>
+            </div>
+          </div>
+
+          {/* Display Value */}
+          <div className="flex-shrink-0 bg-white rounded-lg px-6 py-3 border-2 border-purple-600 shadow-lg">
+            <div className="text-3xl font-bold text-purple-600 text-center">
+              {numberOfScenes}
+            </div>
+            <div className="text-xs text-gray-600 text-center mt-1">
+              scenes
+            </div>
+          </div>
+        </div>
+
+        {/* Quick Select Buttons */}
+        <div className="flex gap-2 mt-4">
+          <span className="text-sm text-gray-600 flex items-center">Quick select:</span>
+          {[3, 5, 7, 10].map((num) => (
+            <button
+              key={num}
+              type="button"
+              onClick={() => onNumberOfScenesChange(num)}
+              className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
+                numberOfScenes === num
+                  ? 'bg-purple-600 text-white'
+                  : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+              }`}
+            >
+              {num}
+            </button>
+          ))}
+        </div>
+
+        {/* Info text */}
+        <p className="text-xs text-gray-500 mt-3">
+          💡 Tip: More scenes = more detailed story, but longer generation time (~2-3 seconds per scene)
         </p>
       </div>
 

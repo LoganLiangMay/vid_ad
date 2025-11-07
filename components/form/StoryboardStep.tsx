@@ -19,6 +19,7 @@ interface StoryboardStepProps {
   selectedConcept: any;
   images: SceneImage[];
   onImagesChange: (images: SceneImage[]) => void;
+  numberOfScenes: number;
 }
 
 export default function StoryboardStep({
@@ -26,6 +27,7 @@ export default function StoryboardStep({
   selectedConcept,
   images,
   onImagesChange,
+  numberOfScenes,
 }: StoryboardStepProps) {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isRegenerating, setIsRegenerating] = useState(false);
@@ -61,7 +63,7 @@ export default function StoryboardStep({
               conceptNarrative: selectedConcept?.narrativeArc,
               conceptVisualStyle: selectedConcept?.visualStyle,
             },
-            numberOfScenes: selectedConcept?.sceneBreakdown?.length || 5,
+            numberOfScenes: numberOfScenes,
           }),
         }
       );
@@ -157,10 +159,9 @@ export default function StoryboardStep({
             Generating Your Storyboard...
           </h3>
           <p className="text-gray-600 mb-2">
-            Creating {selectedConcept?.sceneBreakdown?.length || 5} unique images for your
-            concept
+            Creating {numberOfScenes} unique images for your concept
           </p>
-          <p className="text-sm text-gray-500">This will take about 10-15 seconds</p>
+          <p className="text-sm text-gray-500">This will take about {Math.ceil(numberOfScenes * 2)}-{Math.ceil(numberOfScenes * 3)} seconds</p>
 
           {selectedConcept && (
             <div className="mt-6 bg-purple-50 rounded-lg p-4 text-left">
