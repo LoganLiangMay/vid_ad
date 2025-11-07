@@ -1,6 +1,33 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { adminAuth } from '@/lib/firebase/admin';
 import { cookies } from 'next/headers';
+import { initializeApp, getApps, cert } from 'firebase-admin/app';
+import { getAuth } from 'firebase-admin/auth';
+
+// Initialize Firebase Admin with singleton pattern
+// This must be done in the API route itself for Firebase Cloud Functions
+function getAdminAuth() {
+  console.log('🔧 [Admin] Checking if admin app exists...');
+
+  if (getApps().length === 0) {
+    console.log('🔧 [Admin] No admin app found, initializing...');
+
+    // In Firebase Cloud Functions, we can initialize without any credentials
+    // Firebase will automatically use the default service account
+    try {
+      const app = initializeApp({
+        projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'vid-ad',
+      });
+      console.log('✅ [Admin] Firebase Admin initialized successfully with project:', app.options.projectId);
+    } catch (error: any) {
+      console.error('❌ [Admin] Failed to initialize Firebase Admin:', error.message);
+      throw error;
+    }
+  } else {
+    console.log('✅ [Admin] Admin app already exists');
+  }
+
+  return getAuth();
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -14,6 +41,9 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+
+    console.log('🔑 [API /auth/session] Getting admin auth...');
+    const adminAuth = getAdminAuth();
 
     console.log('🔑 [API /auth/session] Verifying ID token...');
     // Verify the ID token
