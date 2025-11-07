@@ -128,10 +128,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Create user profile in Firestore
       await createUserProfile(result.user, { displayName });
 
+      // Create session cookie for middleware
+      await createSessionCookie(result.user);
+
       return result;
     } catch (err: any) {
       setError(err.message);
       throw err;
+    }
+  };
+
+  // Create session cookie via API
+  const createSessionCookie = async (user: User) => {
+    try {
+      const idToken = await user.getIdToken();
+      const response = await fetch('/api/auth/session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ idToken }),
+      });
+
+      if (!response.ok) {
+        console.error('Failed to create session cookie');
+      }
+    } catch (err) {
+      console.error('Error creating session cookie:', err);
     }
   };
 
@@ -149,6 +170,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Update user profile last login
       if (result.user) {
         await createUserProfile(result.user);
+
+        // Create session cookie for middleware
+        await createSessionCookie(result.user);
 
         // Store session start time for 30-day expiry tracking
         if (rememberMe) {
@@ -207,10 +231,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = async () => {
     setError(null);
     try {
+      // Clear server-side session cookie
+      await fetch('/api/auth/logout', { method: 'POST' });
+
       await signOut(auth);
       setUserProfile(null);
       // Clear session data
       localStorage.removeItem('sessionStartTime');
+      localStorage.removeItem('oauthSuccess');
+      localStorage.removeItem('authRedirectUrl');
     } catch (err: any) {
       setError(err.message);
       throw err;
@@ -295,6 +324,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         if (result && result.user) {
           console.log('✅ OAuth redirect successful, user:', result.user.email);
+
+          // Create session cookie for middleware
+          await createSessionCookie(result.user);
 
           // Create or update user profile (don't block on this)
           createUserProfile(result.user).catch(err => {
