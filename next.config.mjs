@@ -106,20 +106,7 @@ const nextConfig = {
 
   // Redirects for Firebase compatibility
   async redirects() {
-    return [
-      {
-        source: '/api/auth/:path*',
-        has: [
-          {
-            type: 'header',
-            key: 'host',
-            value: '(?!localhost).*',
-          },
-        ],
-        destination: 'https://:host/api/auth/:path*',
-        permanent: false,
-      },
-    ];
+    return [];
   },
 
   // Turbopack configuration (Next.js 16+)
