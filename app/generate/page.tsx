@@ -150,23 +150,32 @@ export default function GeneratePage() {
 
   // Save draft to localStorage AND Firestore on form changes
   useEffect(() => {
+    let saveTimeout: NodeJS.Timeout | null = null;
+
     const subscription = form.watch((formData) => {
       localStorage.setItem('adGenerationDraft', JSON.stringify(formData));
 
-      // Auto-save to Firestore every 2 seconds
+      // Auto-save to Firestore every 2 seconds (debounced)
       if (campaignId) {
-        // Debounce Firestore saves
-        const timeoutId = setTimeout(() => {
+        if (saveTimeout) {
+          clearTimeout(saveTimeout);
+        }
+
+        saveTimeout = setTimeout(() => {
           saveCampaignToFirestore(campaignId, {
             ...formData,
             status: 'draft',
           });
         }, 2000);
-
-        return () => clearTimeout(timeoutId);
       }
     });
-    return () => subscription.unsubscribe();
+
+    return () => {
+      subscription.unsubscribe();
+      if (saveTimeout) {
+        clearTimeout(saveTimeout);
+      }
+    };
   }, [form, campaignId]);
 
   // Redirect if not authenticated

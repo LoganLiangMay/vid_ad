@@ -1,41 +1,38 @@
-import { initializeApp, getApps } from 'firebase-admin/app';
-import { getAuth } from 'firebase-admin/auth';
-import { getFirestore } from 'firebase-admin/firestore';
-import { getStorage } from 'firebase-admin/storage';
+import * as admin from 'firebase-admin';
 
-// Initialize Firebase Admin SDK
-// This runs once at module load time
-let adminAuth: any = null;
-let adminDb: any = null;
-let adminStorage: any = null;
+// Initialize Firebase Admin SDK for Next.js Cloud Functions
+if (!admin.apps.length) {
+  console.log('🔧 [Admin] Initializing Firebase Admin SDK for Cloud Functions');
 
-try {
-  if (getApps().length === 0) {
-    console.log('🔧 [Admin] Initializing Firebase Admin SDK');
-    // For Cloud Functions, use empty config - it will use application default credentials
-    initializeApp();
+  try {
+    // In Cloud Functions/Cloud Run, initialize without credentials
+    // The environment will provide Application Default Credentials automatically
+    admin.initializeApp({
+      projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'vid-ad',
+    });
     console.log('✅ [Admin] Firebase Admin initialized successfully');
-  } else {
-    console.log('✅ [Admin] Firebase Admin already initialized');
+  } catch (error: any) {
+    console.error('❌ [Admin] Failed to initialize Firebase Admin:', error);
+    // Try fallback initialization without any options
+    try {
+      admin.initializeApp();
+      console.log('✅ [Admin] Firebase Admin initialized with fallback');
+    } catch (fallbackError: any) {
+      console.error('❌ [Admin] Fallback initialization also failed:', fallbackError);
+      throw fallbackError;
+    }
   }
-
-  // Initialize services
-  adminAuth = getAuth();
-  adminDb = getFirestore();
-  adminStorage = getStorage();
-  console.log('✅ [Admin] Services initialized successfully');
-} catch (error: any) {
-  console.error('❌ [Admin] Failed to initialize Firebase Admin:', {
-    message: error.message,
-    stack: error.stack,
-    code: error.code,
-    details: error
-  });
-  // Don't throw here, let the error be handled when services are used
+} else {
+  console.log('✅ [Admin] Firebase Admin already initialized');
 }
 
 // Export services
-export { adminAuth, adminDb, adminStorage };
+export const adminAuth = admin.auth();
+export const adminDb = admin.firestore();
+export const adminStorage = admin.storage();
+
+// Export the admin instance itself for direct access if needed
+export { admin };
 
 // Also export as functions for consistency
 export function getAdminAuth() {
@@ -58,7 +55,7 @@ export function getAdminStorage() {
 // Helper functions for common admin operations
 export async function verifyIdToken(token: string) {
   try {
-    const decodedToken = await adminAuth.verifyIdToken(token);
+    const decodedToken = await admin.auth().verifyIdToken(token);
     return decodedToken;
   } catch (error) {
     console.error('Error verifying ID token:', error);
@@ -68,7 +65,7 @@ export async function verifyIdToken(token: string) {
 
 export async function createCustomToken(uid: string, claims?: object) {
   try {
-    const customToken = await adminAuth.createCustomToken(uid, claims);
+    const customToken = await admin.auth().createCustomToken(uid, claims);
     return customToken;
   } catch (error) {
     console.error('Error creating custom token:', error);
@@ -78,7 +75,7 @@ export async function createCustomToken(uid: string, claims?: object) {
 
 export async function getUserByEmail(email: string) {
   try {
-    const user = await adminAuth.getUserByEmail(email);
+    const user = await admin.auth().getUserByEmail(email);
     return user;
   } catch (error) {
     console.error('Error fetching user by email:', error);
@@ -88,7 +85,7 @@ export async function getUserByEmail(email: string) {
 
 export async function setCustomUserClaims(uid: string, claims: object) {
   try {
-    await adminAuth.setCustomUserClaims(uid, claims);
+    await admin.auth().setCustomUserClaims(uid, claims);
     return true;
   } catch (error) {
     console.error('Error setting custom claims:', error);

@@ -177,3 +177,89 @@ export const uploadVideoToS3 = functions.https.onCall(async (data, context) => {
   }
 });
 
+/**
+ * Upload scene image from URL to S3
+ */
+export const uploadImageToS3 = functions.https.onCall(async (data, context) => {
+  if (!context.auth) {
+    throw new functions.https.HttpsError(
+      'unauthenticated',
+      'User must be authenticated'
+    );
+  }
+
+  const {
+    imageUrl,
+    campaignId,
+    sceneId,
+    sceneNumber,
+  } = data;
+
+  if (!imageUrl || !campaignId || !sceneId) {
+    throw new functions.https.HttpsError(
+      'invalid-argument',
+      'imageUrl, campaignId, and sceneId are required'
+    );
+  }
+
+  try {
+    const userId = context.auth.uid;
+    const s3Client = getS3Client();
+    const bucketName = process.env.AWS_S3_BUCKET_NAME;
+
+    if (!bucketName) {
+      throw new functions.https.HttpsError(
+        'failed-precondition',
+        'AWS S3 bucket name not configured'
+      );
+    }
+
+    // Download image from Replicate URL
+    console.log(`📥 Downloading scene image from ${imageUrl}`);
+    const imageResponse = await axios.get(imageUrl, {
+      responseType: 'arraybuffer',
+      timeout: 60000, // 1 minute timeout
+    });
+
+    const imageBuffer = Buffer.from(imageResponse.data);
+    const imageKey = `scenes/${userId}/${campaignId}/scene-${sceneNumber || sceneId}.jpg`;
+
+    // Upload image to S3
+    console.log(`📤 Uploading scene image to S3: ${imageKey}`);
+    await s3Client.send(new PutObjectCommand({
+      Bucket: bucketName,
+      Key: imageKey,
+      Body: imageBuffer,
+      ContentType: 'image/jpeg',
+      ServerSideEncryption: 'AES256',
+      Metadata: {
+        userId,
+        campaignId,
+        sceneId,
+        sceneNumber: String(sceneNumber || ''),
+        uploadedAt: new Date().toISOString(),
+      },
+    }));
+
+    // Generate S3 URL (or use CloudFront if configured)
+    const cloudFrontDomain = process.env.CLOUDFRONT_DOMAIN_NAME;
+    const s3ImageUrl = cloudFrontDomain
+      ? `https://${cloudFrontDomain}/${imageKey}`
+      : `https://${bucketName}.s3.${process.env.AWS_REGION || 'us-east-2'}.amazonaws.com/${imageKey}`;
+
+    return {
+      success: true,
+      imageUrl: s3ImageUrl,
+      s3Key: imageKey,
+      sceneId,
+      sceneNumber,
+    };
+  } catch (error: any) {
+    console.error('Error uploading image to S3:', error);
+    throw new functions.https.HttpsError(
+      'internal',
+      `Failed to upload image to S3: ${error.message}`
+    );
+  }
+});
+

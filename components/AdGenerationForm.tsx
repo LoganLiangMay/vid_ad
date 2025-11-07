@@ -34,7 +34,7 @@ export default function AdGenerationForm({
   form,
   onSubmit,
   isSubmitting,
-  campaignId,
+  campaignId: _campaignId,
   onStepChange,
 }: AdGenerationFormProps) {
   const [currentStep, setCurrentStep] = useState(1);
@@ -101,6 +101,11 @@ export default function AdGenerationForm({
     // Allow going back without validation
     if (stepId < currentStep) {
       setCurrentStep(stepId);
+
+      // Notify parent of step change
+      if (onStepChange) {
+        onStepChange(stepId, form.getValues());
+      }
       return;
     }
 
@@ -132,6 +137,11 @@ export default function AdGenerationForm({
 
     if (allValid) {
       setCurrentStep(stepId);
+
+      // Notify parent of step change
+      if (onStepChange) {
+        onStepChange(stepId, form.getValues());
+      }
     }
   };
 

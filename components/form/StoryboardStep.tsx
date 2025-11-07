@@ -74,9 +74,50 @@ export default function StoryboardStep({
         throw new Error(data.error || 'Failed to generate storyboard');
       }
 
-      onImagesChange(data.images);
-      setSelectedImages(new Set(data.images.map((img: SceneImage) => img.id)));
-      console.log('✅ Storyboard generated successfully');
+      // Upload images to S3 for permanent storage
+      console.log('📤 Uploading scene images to S3...');
+      const campaignId = localStorage.getItem('activeCampaignId');
+
+      if (campaignId) {
+        const uploadedImages = await Promise.all(
+          data.images.map(async (image: SceneImage) => {
+            try {
+              const { httpsCallable } = await import('firebase/functions');
+              const { functions } = await import('@/lib/firebase/config');
+              const uploadImageFn = httpsCallable(functions, 'uploadImageToS3');
+
+              const result = await uploadImageFn({
+                imageUrl: image.url,
+                campaignId,
+                sceneId: image.id,
+                sceneNumber: image.sceneNumber,
+              });
+
+              const resultData = result.data as any;
+              if (resultData.success) {
+                console.log(`✅ Uploaded scene ${image.sceneNumber} to S3`);
+                return {
+                  ...image,
+                  url: resultData.imageUrl, // Use permanent S3 URL
+                  s3Key: resultData.s3Key,
+                };
+              }
+              return image;
+            } catch (uploadError) {
+              console.warn(`⚠️ Failed to upload scene ${image.sceneNumber} to S3, using original URL:`, uploadError);
+              return image; // Fall back to original Replicate URL
+            }
+          })
+        );
+
+        onImagesChange(uploadedImages);
+        setSelectedImages(new Set(uploadedImages.map((img: SceneImage) => img.id)));
+      } else {
+        onImagesChange(data.images);
+        setSelectedImages(new Set(data.images.map((img: SceneImage) => img.id)));
+      }
+
+      console.log('✅ Storyboard generated and uploaded successfully');
     } catch (err) {
       console.error('❌ Error generating storyboard:', err);
       setError(err instanceof Error ? err.message : 'Failed to generate storyboard');
@@ -110,9 +151,41 @@ export default function StoryboardStep({
         throw new Error(data.error);
       }
 
+      // Upload regenerated image to S3
+      let finalImage = data.image;
+      const campaignId = localStorage.getItem('activeCampaignId');
+
+      if (campaignId) {
+        try {
+          console.log(`📤 Uploading regenerated scene ${sceneNumber} to S3...`);
+          const { httpsCallable } = await import('firebase/functions');
+          const { functions } = await import('@/lib/firebase/config');
+          const uploadImageFn = httpsCallable(functions, 'uploadImageToS3');
+
+          const result = await uploadImageFn({
+            imageUrl: data.image.url,
+            campaignId,
+            sceneId: data.image.id,
+            sceneNumber: sceneNumber,
+          });
+
+          const resultData = result.data as any;
+          if (resultData.success) {
+            console.log(`✅ Uploaded regenerated scene ${sceneNumber} to S3`);
+            finalImage = {
+              ...data.image,
+              url: resultData.imageUrl,
+              s3Key: resultData.s3Key,
+            };
+          }
+        } catch (uploadError) {
+          console.warn(`⚠️ Failed to upload regenerated scene to S3, using original URL:`, uploadError);
+        }
+      }
+
       // Update the image in the array
       const updatedImages = images.map((img) =>
-        img.sceneNumber === sceneNumber ? data.image : img
+        img.sceneNumber === sceneNumber ? finalImage : img
       );
       onImagesChange(updatedImages);
     } catch (err) {
