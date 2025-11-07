@@ -15,7 +15,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    console.log('🔑 [API /auth/session] adminAuth object:', adminAuth ? 'exists' : 'undefined');
+    console.log('🔑 [API /auth/session] adminAuth type:', typeof adminAuth);
+
+    if (!adminAuth) {
+      console.error('❌ [API /auth/session] adminAuth is not initialized');
+      return NextResponse.json(
+        { error: 'Firebase Admin not initialized' },
+        { status: 500 }
+      );
+    }
+
     console.log('🔑 [API /auth/session] Verifying ID token...');
+
     // Verify the ID token
     const decodedToken = await adminAuth.verifyIdToken(idToken);
 
@@ -53,9 +65,21 @@ export async function POST(request: NextRequest) {
       { status: 200 }
     );
   } catch (error: any) {
-    console.error('❌ [API /auth/session] Session creation error:', error);
+    console.error('❌ [API /auth/session] Session creation error:', {
+      message: error.message,
+      stack: error.stack,
+      name: error.name,
+      code: error.code,
+      details: error
+    });
+
+    // Return more detailed error information for debugging
     return NextResponse.json(
-      { error: error.message || 'Failed to create session' },
+      {
+        error: error.message || 'Failed to create session',
+        errorCode: error.code,
+        errorDetails: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      },
       { status: 500 }
     );
   }

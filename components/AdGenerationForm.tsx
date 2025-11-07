@@ -16,6 +16,8 @@ interface AdGenerationFormProps {
   form: UseFormReturn<AdGenerationFormData>;
   onSubmit: (data: AdGenerationFormData) => void;
   isSubmitting: boolean;
+  campaignId?: string;
+  onStepChange?: (step: number, formData: AdGenerationFormData) => void;
 }
 
 const steps = [
@@ -32,6 +34,8 @@ export default function AdGenerationForm({
   form,
   onSubmit,
   isSubmitting,
+  campaignId,
+  onStepChange,
 }: AdGenerationFormProps) {
   const [currentStep, setCurrentStep] = useState(1);
   const [creativeDirection, setCreativeDirection] = useState('');
@@ -71,13 +75,25 @@ export default function AdGenerationForm({
     }
 
     if (currentStep < steps.length) {
-      setCurrentStep(currentStep + 1);
+      const nextStep = currentStep + 1;
+      setCurrentStep(nextStep);
+
+      // Notify parent of step change
+      if (onStepChange) {
+        onStepChange(nextStep, form.getValues());
+      }
     }
   };
 
   const handlePrevious = () => {
     if (currentStep > 1) {
-      setCurrentStep(currentStep - 1);
+      const prevStep = currentStep - 1;
+      setCurrentStep(prevStep);
+
+      // Notify parent of step change
+      if (onStepChange) {
+        onStepChange(prevStep, form.getValues());
+      }
     }
   };
 

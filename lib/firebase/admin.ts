@@ -5,22 +5,37 @@ import { getStorage } from 'firebase-admin/storage';
 
 // Initialize Firebase Admin SDK
 // This runs once at module load time
-if (getApps().length === 0) {
-  console.log('🔧 [Admin] Initializing Firebase Admin SDK');
-  try {
+let adminAuth: any = null;
+let adminDb: any = null;
+let adminStorage: any = null;
+
+try {
+  if (getApps().length === 0) {
+    console.log('🔧 [Admin] Initializing Firebase Admin SDK');
     // For Cloud Functions, use empty config - it will use application default credentials
     initializeApp();
     console.log('✅ [Admin] Firebase Admin initialized successfully');
-  } catch (error: any) {
-    console.error('❌ [Admin] Failed to initialize Firebase Admin:', error.message);
-    throw error;
+  } else {
+    console.log('✅ [Admin] Firebase Admin already initialized');
   }
+
+  // Initialize services
+  adminAuth = getAuth();
+  adminDb = getFirestore();
+  adminStorage = getStorage();
+  console.log('✅ [Admin] Services initialized successfully');
+} catch (error: any) {
+  console.error('❌ [Admin] Failed to initialize Firebase Admin:', {
+    message: error.message,
+    stack: error.stack,
+    code: error.code,
+    details: error
+  });
+  // Don't throw here, let the error be handled when services are used
 }
 
-// Export service getters - these will use the default app initialized above
-export const adminAuth = getAuth();
-export const adminDb = getFirestore();
-export const adminStorage = getStorage();
+// Export services
+export { adminAuth, adminDb, adminStorage };
 
 // Also export as functions for consistency
 export function getAdminAuth() {
