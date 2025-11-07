@@ -1,30 +1,35 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, Suspense } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useAuth } from '@/lib/contexts/AuthContext';
 
-export default function LoginPage() {
+function LoginContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const { login, loginWithGoogle, loginWithApple, error: authError, clearError } = useAuth();
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    clearError();
     setLoading(true);
 
     try {
-      // TODO: Implement Firebase signInWithEmailAndPassword
-      console.log('Email login:', email, password);
-      // Temporary: Set a mock auth cookie for demo
-      document.cookie = 'authToken=mock-email-token; path=/';
-      // Temporary redirect for demo
-      router.push('/dashboard');
+      await login(email, password, rememberMe);
+
+      // Get the return URL from query params or default to dashboard
+      const returnUrl = searchParams.get('returnUrl') || '/dashboard';
+      router.push(returnUrl);
     } catch (err: any) {
-      setError(err.message);
+      setError(err.message || 'Failed to sign in');
     } finally {
       setLoading(false);
     }
@@ -32,17 +37,17 @@ export default function LoginPage() {
 
   const handleGoogleSignIn = async () => {
     setError('');
+    clearError();
     setLoading(true);
 
     try {
-      // TODO: Implement Firebase Google sign-in
-      console.log('Google sign-in');
-      // Temporary: Set a mock auth cookie for demo
-      document.cookie = 'authToken=mock-google-token; path=/';
-      // Temporary redirect for demo
-      router.push('/dashboard');
+      await loginWithGoogle(rememberMe);
+
+      // Get the return URL from query params or default to dashboard
+      const returnUrl = searchParams.get('returnUrl') || '/dashboard';
+      router.push(returnUrl);
     } catch (err: any) {
-      setError(err.message);
+      setError(err.message || 'Failed to sign in with Google');
     } finally {
       setLoading(false);
     }
@@ -50,17 +55,17 @@ export default function LoginPage() {
 
   const handleAppleSignIn = async () => {
     setError('');
+    clearError();
     setLoading(true);
 
     try {
-      // TODO: Implement Firebase Apple sign-in
-      console.log('Apple sign-in');
-      // Temporary: Set a mock auth cookie for demo
-      document.cookie = 'authToken=mock-apple-token; path=/';
-      // Temporary redirect for demo
-      router.push('/dashboard');
+      await loginWithApple(rememberMe);
+
+      // Get the return URL from query params or default to dashboard
+      const returnUrl = searchParams.get('returnUrl') || '/dashboard';
+      router.push(returnUrl);
     } catch (err: any) {
-      setError(err.message);
+      setError(err.message || 'Failed to sign in with Apple');
     } finally {
       setLoading(false);
     }
@@ -121,9 +126,9 @@ export default function LoginPage() {
 
           {/* Email Sign In Form */}
           <form className="space-y-4" onSubmit={handleEmailLogin}>
-            {error && (
+            {(error || authError) && (
               <div className="rounded-md bg-red-50 p-4">
-                <p className="text-sm text-red-800">{error}</p>
+                <p className="text-sm text-red-800">{error || authError}</p>
               </div>
             )}
 
@@ -162,6 +167,19 @@ export default function LoginPage() {
             </div>
 
             <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <input
+                  id="remember-me"
+                  name="remember-me"
+                  type="checkbox"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                />
+                <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-900">
+                  Remember me
+                </label>
+              </div>
               <Link href="/auth/reset-password" className="text-sm text-blue-600 hover:text-blue-500">
                 Forgot password?
               </Link>
@@ -178,5 +196,19 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center bg-gray-50">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        </div>
+      }
+    >
+      <LoginContent />
+    </Suspense>
   );
 }
