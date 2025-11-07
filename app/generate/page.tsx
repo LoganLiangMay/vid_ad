@@ -125,14 +125,14 @@ export default function GeneratePage() {
       // Clear draft after successful submission
       localStorage.removeItem('adGenerationDraft');
 
-      console.log('✅ Campaign data saved, redirecting to results page...');
+      console.log('✅ Campaign data saved, redirecting to scene review page...');
 
       // Small delay to ensure state updates and show loading state
       await new Promise(resolve => setTimeout(resolve, 500));
 
-      // Redirect to generation results page with campaign ID
-      console.log('🔄 Navigating to /generate/results/ with campaign ID');
-      window.location.href = `/generate/results/?campaignId=${campaignId}`;
+      // Redirect to scene review page with campaign ID
+      console.log('🔄 Navigating to /generate/review/ with campaign ID');
+      window.location.href = `/generate/review/?campaignId=${campaignId}`;
     } catch (error) {
       console.error('❌ Generation error:', error);
       alert('Error preparing video generation. Please try again.');
