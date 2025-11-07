@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import VoiceoverWorkflow from '@/components/voiceover/VoiceoverWorkflow';
 
@@ -13,7 +13,7 @@ interface VideoData {
   metadata?: any;
 }
 
-export default function VoiceoverPage() {
+function VoiceoverContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const videoId = searchParams.get('videoId');
@@ -120,6 +120,20 @@ export default function VoiceoverPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function VoiceoverPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center bg-gray-50">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        </div>
+      }
+    >
+      <VoiceoverContent />
+    </Suspense>
   );
 }
 

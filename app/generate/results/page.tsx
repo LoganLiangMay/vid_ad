@@ -26,10 +26,12 @@ interface VideoResult {
 export default function GenerateResultsPage() {
   const router = useRouter();
   const [videos, setVideos] = useState<VideoResult[]>([]);
-  const [isGenerating, setIsGenerating] = useState(true);
+  const [isGenerating, setIsGenerating] = useState(false);
   const [currentProgress, setCurrentProgress] = useState(0);
-  const [generationPhase, setGenerationPhase] = useState('Initializing Replicate API...');
+  const [generationPhase, setGenerationPhase] = useState('Ready to generate');
   const [generationData, setGenerationData] = useState<any>(null);
+  const [selectedImages, setSelectedImages] = useState<any[]>([]);
+  const [isReady, setIsReady] = useState(false);
   const replicateService = ReplicateVideoService.getInstance();
 
   useEffect(() => {
@@ -44,17 +46,27 @@ export default function GenerateResultsPage() {
       return;
     }
 
-    // Load campaign data from localStorage or Firestore
+    // Load campaign data and selected images
     const loadCampaignData = async () => {
       // Try localStorage first (faster)
       const campaignKey = `campaign_${campaignId}`;
       const campaignDataStr = localStorage.getItem(campaignKey);
 
+      // Load selected images
+      const selectedKey = `campaign_${campaignId}_selected_images`;
+      const selectedImagesStr = localStorage.getItem(selectedKey);
+
       if (campaignDataStr) {
         try {
           const parsedData = JSON.parse(campaignDataStr);
+          const parsedImages = selectedImagesStr ? JSON.parse(selectedImagesStr) : [];
+
           console.log('📋 Campaign loaded from localStorage:', campaignId);
-          startGeneration(parsedData, campaignId);
+          console.log('🖼️ Selected images:', parsedImages.length);
+
+          setGenerationData(parsedData);
+          setSelectedImages(parsedImages);
+          setIsReady(true);
           return;
         } catch (error) {
           console.error('Error parsing localStorage data:', error);
@@ -76,11 +88,12 @@ export default function GenerateResultsPage() {
             ...campaign,
             createdAt: campaign.createdAt?.toMillis?.() || campaign.createdAt || Date.now(),
           };
-          
+
           // Save to localStorage for faster access next time
           localStorage.setItem(campaignKey, JSON.stringify(parsedData));
           console.log('📋 Campaign loaded from Firestore:', campaignId);
-          startGeneration(parsedData, campaignId);
+          setGenerationData(parsedData);
+          setIsReady(true);
           return;
         }
       } catch (firestoreError) {
@@ -93,12 +106,29 @@ export default function GenerateResultsPage() {
       router.push('/generate');
     };
 
-    const startGeneration = (parsedData: any, campaignId: string) => {
-      console.log('🚀 Starting Replicate video generation with params:', parsedData);
-      console.log('📋 Campaign ID:', campaignId);
+    loadCampaignData();
+  }, [router]);
 
-      // Store generation data in state for use throughout component
-      setGenerationData(parsedData);
+  // Function to start video generation (called by button click)
+  const startGeneration = () => {
+    if (!generationData || !isReady) {
+      console.error('❌ Generation data not ready');
+      return;
+    }
+
+    const searchParams = new URLSearchParams(window.location.search);
+    const campaignId = searchParams.get('campaignId');
+
+    if (!campaignId) {
+      console.error('❌ No campaign ID');
+      return;
+    }
+
+    setIsGenerating(true);
+    const parsedData = generationData;
+    console.log('🚀 Starting Replicate video generation with params:', parsedData);
+    console.log('📋 Campaign ID:', campaignId);
+    console.log('🖼️ Using selected images:', selectedImages.length);
 
       // Check if there are existing videos in the campaign data
       const existingVideos = parsedData.videos || [];
@@ -194,7 +224,6 @@ export default function GenerateResultsPage() {
       };
 
       // Only start new generation if we don't have all videos yet
-      const variations = parsedData.variations || 2;
       const needsNewVideos = !existingVideos.length || existingVideos.length < variations;
 
       if (needsNewVideos) {
@@ -432,10 +461,7 @@ export default function GenerateResultsPage() {
     };
 
       initializeVideoGeneration();
-    };
-
-    loadCampaignData();
-  }, [router]);
+  };
 
   const handleDownload = (video: VideoResult) => {
     window.open(video.url, '_blank');
@@ -523,6 +549,81 @@ export default function GenerateResultsPage() {
       </nav>
 
       <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+        {/* Preview Selected Images (before generation starts) */}
+        {!isGenerating && isReady && selectedImages.length > 0 && (
+          <div className="mb-6 px-4">
+            <div className="bg-white rounded-lg shadow-xl p-6">
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">
+                Review Your Selected Scenes
+              </h2>
+              <p className="text-gray-600 mb-6">
+                You've selected {selectedImages.length} scene{selectedImages.length !== 1 ? 's' : ''} to create your {generationData?.duration || 7}-second video.
+                Click "Start Video Generation" when you're ready.
+              </p>
+
+              {/* Selected Images Preview */}
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
+                {selectedImages.map((image, index) => (
+                  <div key={image.id} className="relative rounded-lg overflow-hidden border-2 border-purple-500">
+                    <div className="aspect-[9/16] relative bg-gray-100">
+                      <img
+                        src={image.url}
+                        alt={`Scene ${index + 1}`}
+                        className="w-full h-full object-cover"
+                      />
+                      <div className="absolute top-2 left-2 bg-purple-600 text-white px-2 py-1 rounded text-xs font-bold">
+                        Scene {index + 1}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Campaign Info */}
+              <div className="bg-gray-50 rounded-lg p-4 mb-6">
+                <h3 className="font-semibold text-gray-900 mb-2">Campaign Settings</h3>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                  <div>
+                    <p className="text-gray-500">Product</p>
+                    <p className="font-semibold">{generationData?.productName}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-500">Brand Tone</p>
+                    <p className="font-semibold capitalize">{generationData?.brandTone}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-500">Duration</p>
+                    <p className="font-semibold">{generationData?.duration}s</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-500">Orientation</p>
+                    <p className="font-semibold capitalize">{generationData?.orientation}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex gap-4">
+                <button
+                  onClick={() => {
+                    const campaignId = new URLSearchParams(window.location.search).get('campaignId');
+                    router.push(`/generate/review/?campaignId=${campaignId}`);
+                  }}
+                  className="px-6 py-3 border-2 border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  ← Back to Scene Review
+                </button>
+                <button
+                  onClick={startGeneration}
+                  className="flex-1 bg-gradient-to-r from-purple-600 to-blue-600 text-white py-4 px-8 rounded-lg font-semibold text-lg hover:opacity-90 transition-opacity shadow-lg"
+                >
+                  Start Video Generation →
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Status Banner */}
         {isGenerating && (
           <div className="mb-6 px-4">
