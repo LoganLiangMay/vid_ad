@@ -198,18 +198,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const loginWithGoogle = async () => {
     setError(null);
     try {
+      console.log('🔑 [AuthContext] loginWithGoogle called');
+      console.log('🔍 [AuthContext] Current auth config:', {
+        apiKey: auth.app.options.apiKey?.substring(0, 10) + '...',
+        authDomain: auth.app.options.authDomain,
+        projectId: auth.app.options.projectId
+      });
+
       // Store the intended destination before redirect
       if (typeof window !== 'undefined') {
         const returnUrl = new URLSearchParams(window.location.search).get('returnUrl') || '/dashboard';
         localStorage.setItem('authRedirectUrl', returnUrl);
+        console.log('💾 [AuthContext] Stored returnUrl:', returnUrl);
       }
 
+      console.log('🔧 [AuthContext] Creating GoogleAuthProvider...');
       const provider = new GoogleAuthProvider();
       provider.addScope('profile');
       provider.addScope('email');
+
+      console.log('🚀 [AuthContext] Calling signInWithRedirect...');
+      console.log('🌐 [AuthContext] Expected redirect to:', `https://${auth.app.options.authDomain}/__/auth/handler`);
+
       await signInWithRedirect(auth, provider);
+      console.log('✅ [AuthContext] signInWithRedirect completed (should redirect now)');
       // User will be redirected, and result will be handled in useEffect
     } catch (err: any) {
+      console.error('❌ [AuthContext] loginWithGoogle error:', {
+        message: err.message,
+        code: err.code,
+        stack: err.stack
+      });
       setError(err.message);
       throw err;
     }
