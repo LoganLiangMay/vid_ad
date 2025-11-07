@@ -9,7 +9,7 @@ export default function HomePage() {
             AI Video Ad Generator
           </h1>
           <p className="mb-12 text-center text-xl text-gray-600">
-            Generate professional video advertisements with the power of AI
+            Generate Professional Customizable Video Advertisements
           </p>
           <div className="flex flex-col gap-4 sm:flex-row justify-center">
             <Link

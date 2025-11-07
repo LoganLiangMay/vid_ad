@@ -34,6 +34,7 @@ export default function AdGenerationForm({
   isSubmitting,
 }: AdGenerationFormProps) {
   const [currentStep, setCurrentStep] = useState(1);
+  const [creativeDirection, setCreativeDirection] = useState('');
   const [selectedConcept, setSelectedConcept] = useState<any>(null);
   const [storyboardImages, setStoryboardImages] = useState<any[]>([]);
 
@@ -162,10 +163,17 @@ export default function AdGenerationForm({
           {currentStep === 2 && <BrandSettingsStep form={form} />}
           {currentStep === 3 && <VideoConfigStep form={form} />}
           {currentStep === 4 && <AdditionalOptionsStep form={form} />}
-          {currentStep === 5 && <ReviewStep form={form} />}
+          {currentStep === 5 && (
+            <ReviewStep
+              form={form}
+              creativeDirection={creativeDirection}
+              onCreativeDirectionChange={setCreativeDirection}
+            />
+          )}
           {currentStep === 6 && (
             <ConceptSelectionStep
               formData={form.getValues()}
+              creativeDirection={creativeDirection}
               selectedConcept={selectedConcept}
               onSelectConcept={setSelectedConcept}
             />

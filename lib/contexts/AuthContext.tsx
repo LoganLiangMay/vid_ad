@@ -5,6 +5,10 @@ import {
   User,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
+  signInWithRedirect,
+  getRedirectResult,
+  GoogleAuthProvider,
+  OAuthProvider,
   signOut,
   onAuthStateChanged,
   sendPasswordResetEmail,
@@ -35,6 +39,8 @@ interface AuthContextType {
   error: string | null;
   signup: (email: string, password: string, displayName?: string) => Promise<UserCredential>;
   login: (email: string, password: string, rememberMe?: boolean) => Promise<UserCredential>;
+  loginWithGoogle: () => Promise<void>;
+  loginWithApple: () => Promise<void>;
   logout: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
   updateUserProfile: (data: Partial<UserProfile>) => Promise<void>;
@@ -157,6 +163,46 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  // Login with Google (using redirect)
+  const loginWithGoogle = async () => {
+    setError(null);
+    try {
+      // Store the intended destination before redirect
+      if (typeof window !== 'undefined') {
+        const returnUrl = new URLSearchParams(window.location.search).get('returnUrl') || '/dashboard';
+        localStorage.setItem('authRedirectUrl', returnUrl);
+      }
+
+      const provider = new GoogleAuthProvider();
+      provider.addScope('profile');
+      provider.addScope('email');
+      await signInWithRedirect(auth, provider);
+      // User will be redirected, and result will be handled in useEffect
+    } catch (err: any) {
+      setError(err.message);
+      throw err;
+    }
+  };
+
+  // Login with Apple (using redirect)
+  const loginWithApple = async () => {
+    setError(null);
+    try {
+      // Store the intended destination before redirect
+      if (typeof window !== 'undefined') {
+        const returnUrl = new URLSearchParams(window.location.search).get('returnUrl') || '/dashboard';
+        localStorage.setItem('authRedirectUrl', returnUrl);
+      }
+
+      const provider = new OAuthProvider('apple.com');
+      await signInWithRedirect(auth, provider);
+      // User will be redirected, and result will be handled in useEffect
+    } catch (err: any) {
+      setError(err.message);
+      throw err;
+    }
+  };
+
   // Logout function
   const logout = async () => {
     setError(null);
@@ -231,37 +277,84 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Set up auth state listener and session expiry checker
   useEffect(() => {
+    let mounted = true;
+
+    // Timeout protection - prevent infinite loading
+    const timeout = setTimeout(() => {
+      if (mounted && loading) {
+        console.warn('Auth initialization timed out, setting loading to false');
+        setLoading(false);
+      }
+    }, 5000);
+
+    // Handle redirect result from OAuth providers FIRST, before onAuthStateChanged
+    const initAuth = async () => {
+      try {
+        // Check for OAuth redirect result
+        const result = await getRedirectResult(auth);
+
+        if (result && result.user) {
+          console.log('✅ OAuth redirect successful, user:', result.user.email);
+
+          // Create or update user profile (don't block on this)
+          createUserProfile(result.user).catch(err => {
+            console.error('Error creating user profile:', err);
+          });
+
+          localStorage.setItem('sessionStartTime', new Date().toISOString());
+
+          // Mark that we've successfully handled OAuth
+          localStorage.setItem('oauthSuccess', 'true');
+        }
+      } catch (err: any) {
+        console.error('OAuth redirect error:', err);
+        setError(err.message || 'Failed to sign in with OAuth provider');
+      }
+    };
+
+    initAuth();
+
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (!mounted) return;
+
       setCurrentUser(user);
 
       if (user) {
         // Get user profile from Firestore
         const userRef = doc(db, 'users', user.uid);
-        const snapshot = await getDoc(userRef);
 
-        if (snapshot.exists()) {
-          const data = snapshot.data();
-          setUserProfile({
-            uid: user.uid,
-            email: data.email,
-            displayName: data.displayName,
-            photoURL: data.photoURL,
-            createdAt: data.createdAt?.toDate(),
-            lastLogin: data.lastLogin?.toDate(),
-            metadata: data.metadata
-          });
-        } else {
-          // Create profile if it doesn't exist
-          await createUserProfile(user);
+        try {
+          const snapshot = await getDoc(userRef);
+
+          if (snapshot.exists()) {
+            const data = snapshot.data();
+            setUserProfile({
+              uid: user.uid,
+              email: data.email,
+              displayName: data.displayName,
+              photoURL: data.photoURL,
+              createdAt: data.createdAt?.toDate(),
+              lastLogin: data.lastLogin?.toDate(),
+              metadata: data.metadata
+            });
+          } else {
+            // Create profile if it doesn't exist (non-blocking)
+            createUserProfile(user).catch(err => {
+              console.error('Error creating user profile in auth listener:', err);
+            });
+          }
+
+          // Check session expiry on auth state change
+          checkSessionExpiry();
+        } catch (err) {
+          console.error('Error fetching user profile:', err);
         }
-
-        // Check session expiry on auth state change
-        checkSessionExpiry();
       } else {
         setUserProfile(null);
       }
 
       setLoading(false);
+      clearTimeout(timeout);
     });
 
     // Set up interval to check session expiry every hour
@@ -270,6 +363,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }, 60 * 60 * 1000); // Check every hour
 
     return () => {
+      mounted = false;
+      clearTimeout(timeout);
       unsubscribe();
       clearInterval(intervalId);
     };
@@ -282,6 +377,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     error,
     signup,
     login,
+    loginWithGoogle,
+    loginWithApple,
     logout,
     resetPassword,
     updateUserProfile,

@@ -1,19 +1,41 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+
+// Force dynamic rendering to prevent static caching
+export const dynamic = 'force-dynamic';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/contexts/AuthContext';
 
 export default function SignUpPage() {
   const router = useRouter();
-  const { signup } = useAuth();
+  const { signup, loginWithGoogle, loginWithApple, currentUser, loading: authLoading } = useAuth();
 
   const [displayName, setDisplayName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // Redirect to dashboard if user is authenticated
+  useEffect(() => {
+    if (!authLoading && currentUser) {
+      // Check if this is an OAuth redirect completion
+      const isOAuthSuccess = typeof window !== 'undefined' && localStorage.getItem('oauthSuccess');
+
+      if (isOAuthSuccess) {
+        // Clear the flags
+        localStorage.removeItem('oauthSuccess');
+        localStorage.removeItem('authRedirectUrl');
+
+        console.log('🚀 OAuth redirect complete, navigating to dashboard');
+      }
+
+      // Navigate to dashboard
+      router.push('/dashboard');
+    }
+  }, [currentUser, authLoading, router]);
 
   const handleEmailSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,32 +52,31 @@ export default function SignUpPage() {
     }
   };
 
-  // TODO: Implement OAuth sign-in methods
-  // const handleGoogleSignIn = async () => {
-  //   setError('');
-  //   setLoading(true);
-  //   try {
-  //     await loginWithGoogle();
-  //     router.push('/dashboard');
-  //   } catch (err: any) {
-  //     setError(err.message || 'Failed to sign in with Google');
-  //   } finally {
-  //     setLoading(false);
-  //   }
-  // };
+  const handleGoogleSignIn = async () => {
+    setError('');
+    setLoading(true);
+    try {
+      // This will redirect to Google's sign-in page
+      await loginWithGoogle();
+      // User will be redirected, no need to manually navigate
+    } catch (err: any) {
+      setError(err.message || 'Failed to sign in with Google');
+      setLoading(false);
+    }
+  };
 
-  // const handleAppleSignIn = async () => {
-  //   setError('');
-  //   setLoading(true);
-  //   try {
-  //     await loginWithApple();
-  //     router.push('/dashboard');
-  //   } catch (err: any) {
-  //     setError(err.message || 'Failed to sign in with Apple');
-  //   } finally {
-  //     setLoading(false);
-  //   }
-  // };
+  const handleAppleSignIn = async () => {
+    setError('');
+    setLoading(true);
+    try {
+      // This will redirect to Apple's sign-in page
+      await loginWithApple();
+      // User will be redirected, no need to manually navigate
+    } catch (err: any) {
+      setError(err.message || 'Failed to sign in with Apple');
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background py-12 px-4 sm:px-6 lg:px-8">
@@ -73,8 +94,7 @@ export default function SignUpPage() {
         </div>
 
         <div className="mt-8 space-y-6">
-          {/* TODO: Re-enable OAuth sign-in when implemented */}
-          {/* <div className="space-y-3">
+          <div className="space-y-3">
             <button
               onClick={handleGoogleSignIn}
               disabled={loading}
@@ -108,7 +128,7 @@ export default function SignUpPage() {
             <div className="relative flex justify-center text-sm">
               <span className="px-2 bg-background text-muted-foreground">Or continue with email</span>
             </div>
-          </div> */}
+          </div>
 
           {/* Email Sign Up Form */}
           <form className="space-y-4" onSubmit={handleEmailSignUp}>

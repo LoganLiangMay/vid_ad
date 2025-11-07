@@ -78,7 +78,7 @@ exports.generateConcepts = functions
     }
     try {
         const body = req.body;
-        const { productName, productDescription, keywords = [], brandTone = 'professional', targetAudience, duration = 7, } = body;
+        const { productName, productDescription, keywords = [], brandTone = 'professional', targetAudience, duration = 7, creativeDirection, } = body;
         // Check for OpenAI API key
         if (!process.env.OPENAI_API_KEY) {
             console.warn('⚠️ OPENAI_API_KEY not configured - using fallback concepts');
@@ -106,12 +106,13 @@ Brand Tone: {brandTone}
 Target Audience: {targetAudience}
 Keywords: {keywords}
 Video Duration: {duration} seconds
+${creativeDirection ? '\nUSER\'S CREATIVE DIRECTION:\n"{creativeDirection}"\n' : ''}
 
 REQUIREMENTS:
 1. Generate 3 DISTINCT creative concepts (Director's Treatment)
 2. Each concept should have a unique approach and emotional angle
 3. Concepts should vary in style (e.g., one energetic, one elegant, one playful)
-4. Each concept includes:
+${creativeDirection ? '4. IMPORTANT: Incorporate the user\'s creative direction into all concepts. Use their vision as the foundation while adding professional polish and variety.\n5. ' : '4. '}Each concept includes:
    - Compelling tagline (4-8 words)
    - Narrative arc (how the story unfolds)
    - Visual style (colors, mood, aesthetics)
@@ -147,6 +148,7 @@ Generate 3 unique concepts now:
             targetAudience: targetAudience || 'General consumers',
             keywords: keywords.join(', ') || 'N/A',
             duration: duration.toString(),
+            creativeDirection: creativeDirection || '',
         });
         try {
             const response = await model.invoke(formattedPrompt);
@@ -189,7 +191,7 @@ Generate 3 unique concepts now:
 // ============================================
 // FALLBACK CONCEPTS
 // ============================================
-function generateFallbackConcepts(productName, productDescription, brandTone) {
+function generateFallbackConcepts(productName, _productDescription, brandTone) {
     console.log('🍌 Generating fallback concepts (no AI)');
     const toneStyles = {
         professional: {

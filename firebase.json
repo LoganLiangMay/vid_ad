@@ -1,14 +1,24 @@
 {
   "hosting": {
-    "public": "out",
+    "source": ".",
     "ignore": [
       "firebase.json",
       "**/.*",
       "**/node_modules/**"
     ],
-    "cleanUrls": true,
-    "trailingSlash": true,
+    "frameworksBackend": {
+      "region": "us-central1"
+    },
     "headers": [
+      {
+        "source": "/auth/**",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "no-cache, no-store, must-revalidate"
+          }
+        ]
+      },
       {
         "source": "**/*.@(jpg|jpeg|gif|png|svg|webp|avif)",
         "headers": [
@@ -43,9 +53,6 @@
     "rules": "firestore.rules",
     "indexes": "firestore.indexes.json"
   },
-  "storage": {
-    "rules": "storage.rules"
-  },
   "emulators": {
     "auth": {
       "port": 9099
@@ -58,9 +65,6 @@
     },
     "hosting": {
       "port": 5000
-    },
-    "storage": {
-      "port": 9199
     },
     "ui": {
       "enabled": true,

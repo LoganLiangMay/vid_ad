@@ -14,12 +14,14 @@ interface Concept {
 
 interface ConceptSelectionStepProps {
   formData: AdGenerationFormData;
+  creativeDirection: string;
   selectedConcept: Concept | null;
   onSelectConcept: (concept: Concept) => void;
 }
 
 export default function ConceptSelectionStep({
   formData,
+  creativeDirection,
   selectedConcept,
   onSelectConcept,
 }: ConceptSelectionStepProps) {
@@ -50,6 +52,7 @@ export default function ConceptSelectionStep({
             brandTone: formData.brandTone,
             targetAudience: formData.targetAudience,
             duration: formData.duration,
+            creativeDirection: creativeDirection || undefined, // Include user's creative vision
           }),
         }
       );
@@ -73,7 +76,7 @@ export default function ConceptSelectionStep({
   if (isLoading) {
     return (
       <div className="min-h-[500px] flex items-center justify-center">
-        <div className="text-center">
+        <div className="text-center max-w-2xl">
           <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-purple-600 mx-auto mb-6"></div>
           <h3 className="text-2xl font-bold text-gray-800 mb-2">
             Crafting Creative Concepts...
@@ -81,6 +84,12 @@ export default function ConceptSelectionStep({
           <p className="text-gray-600">
             Our AI is generating 3 unique concepts for "{formData.productName}"
           </p>
+          {creativeDirection && (
+            <div className="mt-4 bg-purple-50 rounded-lg p-4 text-left">
+              <p className="text-sm font-semibold text-purple-900 mb-1">Your Creative Direction:</p>
+              <p className="text-sm text-purple-700 italic">"{creativeDirection}"</p>
+            </div>
+          )}
           <p className="text-sm text-gray-500 mt-2">This will take about 10-15 seconds</p>
         </div>
       </div>
