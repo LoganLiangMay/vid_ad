@@ -13,7 +13,7 @@ function getAdminAuth() {
 
     try {
       // Use applicationDefault() which works automatically in Cloud Functions, Cloud Run, etc.
-      const app = initializeApp({
+      initializeApp({
         credential: applicationDefault(),
       });
       console.log('✅ [Admin] Firebase Admin initialized successfully');
