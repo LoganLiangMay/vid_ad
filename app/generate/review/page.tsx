@@ -66,14 +66,18 @@ function SceneReviewContent() {
     setIsGenerating(true);
 
     try {
-      const response = await fetch('/api/generate-scenes', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          formData: campaignData,
-          numberOfScenes: 5,
-        }),
-      });
+      // Call Firebase Cloud Function instead of Next.js API route
+      const response = await fetch(
+        'https://us-central1-vid-ad.cloudfunctions.net/generateScenes',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            formData: campaignData,
+            numberOfScenes: 5,
+          }),
+        }
+      );
 
       const data = await response.json();
 
@@ -143,14 +147,18 @@ function SceneReviewContent() {
         return;
       }
 
-      const response = await fetch('/api/regenerate-scene', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          originalPrompt: scene.prompt,
-          sceneNumber: sceneNumber,
-        }),
-      });
+      // Call Firebase Cloud Function instead of Next.js API route
+      const response = await fetch(
+        'https://us-central1-vid-ad.cloudfunctions.net/regenerateScene',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            originalPrompt: scene.prompt,
+            sceneNumber: sceneNumber,
+          }),
+        }
+      );
 
       const data = await response.json();
 
