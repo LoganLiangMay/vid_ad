@@ -5,8 +5,7 @@ import {
   User,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
-  signInWithRedirect,
-  getRedirectResult,
+  signInWithPopup,
   GoogleAuthProvider,
   OAuthProvider,
   signOut,
@@ -194,7 +193,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  // Login with Google (using redirect)
+  // Login with Google (using popup - recommended for web apps)
   const loginWithGoogle = async () => {
     setError(null);
     try {
@@ -205,49 +204,79 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         projectId: auth.app.options.projectId
       });
 
-      // Store the intended destination before redirect
-      if (typeof window !== 'undefined') {
-        const returnUrl = new URLSearchParams(window.location.search).get('returnUrl') || '/dashboard';
-        localStorage.setItem('authRedirectUrl', returnUrl);
-        console.log('💾 [AuthContext] Stored returnUrl:', returnUrl);
-      }
-
       console.log('🔧 [AuthContext] Creating GoogleAuthProvider...');
       const provider = new GoogleAuthProvider();
       provider.addScope('profile');
       provider.addScope('email');
 
-      console.log('🚀 [AuthContext] Calling signInWithRedirect...');
-      console.log('🌐 [AuthContext] Expected redirect to:', `https://${auth.app.options.authDomain}/__/auth/handler`);
+      console.log('🚀 [AuthContext] Calling signInWithPopup...');
+      const result = await signInWithPopup(auth, provider);
 
-      await signInWithRedirect(auth, provider);
-      console.log('✅ [AuthContext] signInWithRedirect completed (should redirect now)');
-      // User will be redirected, and result will be handled in useEffect
+      console.log('✅ [AuthContext] signInWithPopup successful!', {
+        user: result.user.email,
+        uid: result.user.uid
+      });
+
+      // Create session cookie immediately
+      console.log('🍪 [AuthContext] Creating session cookie after popup sign-in...');
+      await createSessionCookie(result.user);
+
+      // Create or update user profile
+      await createUserProfile(result.user);
+
+      localStorage.setItem('sessionStartTime', new Date().toISOString());
+
+      return result;
     } catch (err: any) {
       console.error('❌ [AuthContext] loginWithGoogle error:', {
         message: err.message,
         code: err.code,
         stack: err.stack
       });
+
+      // Handle popup closed by user
+      if (err.code === 'auth/popup-closed-by-user') {
+        console.log('ℹ️ [AuthContext] User closed the popup');
+        return;
+      }
+
       setError(err.message);
       throw err;
     }
   };
 
-  // Login with Apple (using redirect)
+  // Login with Apple (using popup)
   const loginWithApple = async () => {
     setError(null);
     try {
-      // Store the intended destination before redirect
-      if (typeof window !== 'undefined') {
-        const returnUrl = new URLSearchParams(window.location.search).get('returnUrl') || '/dashboard';
-        localStorage.setItem('authRedirectUrl', returnUrl);
+      console.log('🍎 [AuthContext] loginWithApple called');
+      const provider = new OAuthProvider('apple.com');
+
+      console.log('🚀 [AuthContext] Calling signInWithPopup for Apple...');
+      const result = await signInWithPopup(auth, provider);
+
+      console.log('✅ [AuthContext] Apple sign-in successful!', {
+        user: result.user.email,
+        uid: result.user.uid
+      });
+
+      // Create session cookie immediately
+      await createSessionCookie(result.user);
+
+      // Create or update user profile
+      await createUserProfile(result.user);
+
+      localStorage.setItem('sessionStartTime', new Date().toISOString());
+
+      return result;
+    } catch (err: any) {
+      console.error('❌ [AuthContext] loginWithApple error:', err);
+
+      if (err.code === 'auth/popup-closed-by-user') {
+        console.log('ℹ️ [AuthContext] User closed the popup');
+        return;
       }
 
-      const provider = new OAuthProvider('apple.com');
-      await signInWithRedirect(auth, provider);
-      // User will be redirected, and result will be handled in useEffect
-    } catch (err: any) {
       setError(err.message);
       throw err;
     }
@@ -342,41 +371,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     }, 5000);
 
-    // Handle redirect result from OAuth providers FIRST, before onAuthStateChanged
-    const initAuth = async () => {
-      try {
-        console.log('🔄 [AuthContext] Checking for OAuth redirect result...');
-        // Check for OAuth redirect result
-        const result = await getRedirectResult(auth);
-
-        if (result && result.user) {
-          console.log('✅ [AuthContext] OAuth redirect successful, user:', result.user.email);
-
-          // Create session cookie for middleware
-          console.log('🍪 [AuthContext] About to create session cookie...');
-          await createSessionCookie(result.user);
-          console.log('✅ [AuthContext] Session cookie creation completed');
-
-          // Create or update user profile (don't block on this)
-          createUserProfile(result.user).catch(err => {
-            console.error('❌ [AuthContext] Error creating user profile:', err);
-          });
-
-          localStorage.setItem('sessionStartTime', new Date().toISOString());
-
-          // Mark that we've successfully handled OAuth
-          localStorage.setItem('oauthSuccess', 'true');
-          console.log('✅ [AuthContext] OAuth flow completed, marked as success');
-        } else {
-          console.log('ℹ️ [AuthContext] No OAuth redirect result found');
-        }
-      } catch (err: any) {
-        console.error('❌ [AuthContext] OAuth redirect error:', err);
-        setError(err.message || 'Failed to sign in with OAuth provider');
-      }
-    };
-
-    initAuth();
+    // No need to check for redirect result since we're using popup now
+    console.log('✅ [AuthContext] Using popup-based authentication (no redirect handling needed)');
 
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (!mounted) return;
