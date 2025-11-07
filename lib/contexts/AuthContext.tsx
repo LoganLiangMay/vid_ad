@@ -362,9 +362,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (!mounted) return;
 
+      console.log('👤 [AuthContext] onAuthStateChanged fired:', {
+        hasUser: !!user,
+        email: user?.email,
+        uid: user?.uid
+      });
+
       setCurrentUser(user);
 
       if (user) {
+        console.log('✅ [AuthContext] User is authenticated, creating session cookie...');
+        // Create session cookie for authenticated user
+        await createSessionCookie(user);
+
         // Get user profile from Firestore
         const userRef = doc(db, 'users', user.uid);
 
@@ -395,6 +405,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           console.error('Error fetching user profile:', err);
         }
       } else {
+        console.log('❌ [AuthContext] No user authenticated');
         setUserProfile(null);
       }
 

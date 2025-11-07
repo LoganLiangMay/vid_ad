@@ -65,10 +65,13 @@ function LoginContent() {
     setError('');
     setLoading(true);
     try {
+      console.log('🚀 [LoginPage] Starting Google sign-in...');
       // This will redirect to Google's sign-in page
       await loginWithGoogle();
+      console.log('✅ [LoginPage] Google sign-in redirect initiated');
       // User will be redirected, no need to manually navigate
     } catch (err: any) {
+      console.error('❌ [LoginPage] Google sign-in error:', err);
       setError(err.message || 'Failed to sign in with Google');
       setLoading(false);
     }
