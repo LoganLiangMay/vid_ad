@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 
@@ -15,7 +15,7 @@ interface SceneImage {
   mood?: string;
 }
 
-export default function SceneReviewPage() {
+function SceneReviewContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
 
@@ -376,5 +376,19 @@ export default function SceneReviewPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function SceneReviewPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 flex items-center justify-center">
+          <div className="animate-spin rounded-full h-20 w-20 border-b-4 border-purple-600"></div>
+        </div>
+      }
+    >
+      <SceneReviewContent />
+    </Suspense>
   );
 }
