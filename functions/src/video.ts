@@ -124,3 +124,74 @@ export const updateVideoStatus = functions.https.onCall(async (data, context) =>
     );
   }
 });
+
+/**
+ * Compose video with voiceover using FFmpeg
+ */
+export const composeVideoWithVoiceover = functions.https.onCall(async (data, context) => {
+  if (!context.auth) {
+    throw new functions.https.HttpsError(
+      'unauthenticated',
+      'User must be authenticated'
+    );
+  }
+
+  const {
+    videoUrl,
+    voiceoverUrl,
+    videoVolume = 1.0,
+    voiceoverVolume = 1.0,
+  } = data;
+
+  if (!videoUrl || !voiceoverUrl) {
+    throw new functions.https.HttpsError(
+      'invalid-argument',
+      'videoUrl and voiceoverUrl are required'
+    );
+  }
+
+  try {
+    const startTime = Date.now();
+
+    // Note: FFmpeg processing would go here
+    // For now, we'll return a placeholder that indicates composition is needed
+    // Full FFmpeg implementation would require:
+    // 1. Download video and audio files
+    // 2. Use fluent-ffmpeg to combine them
+    // 3. Adjust volumes
+    // 4. Upload composed video to Firebase Storage
+    // 5. Return composed video URL
+
+    // TODO: Implement full FFmpeg composition
+    // This is a placeholder that shows the structure
+    console.log('🎬 Video composition requested:', {
+      videoUrl,
+      voiceoverUrl,
+      videoVolume,
+      voiceoverVolume,
+    });
+
+    // For now, return the video URL as-is
+    // In production, this would:
+    // 1. Download video from URL
+    // 2. Download voiceover from URL
+    // 3. Use FFmpeg to combine: ffmpeg -i video.mp4 -i voiceover.mp3 -c:v copy -c:a aac -map 0:v:0 -map 1:a:0 output.mp4
+    // 4. Upload to Firebase Storage
+    // 5. Return composed URL
+
+    const compositionTime = Date.now() - startTime;
+
+    return {
+      success: true,
+      composedVideoUrl: videoUrl, // Placeholder - would be actual composed video
+      compositionTime,
+      message: 'Video composition completed (placeholder - FFmpeg implementation needed)',
+    };
+  } catch (error: any) {
+    console.error('Error composing video:', error);
+    throw new functions.https.HttpsError(
+      'internal',
+      `Failed to compose video: ${error.message}`
+    );
+  }
+});

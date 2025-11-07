@@ -62,17 +62,23 @@ export default function DashboardPage() {
         {/* Dashboard Grid */}
         <div className="px-4 py-6 sm:px-0">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {/* Projects Card */}
+            {/* Campaigns Card */}
             <div className="bg-white overflow-hidden shadow rounded-lg">
               <div className="px-4 py-5 sm:p-6">
-                <dt className="text-sm font-medium text-gray-500 truncate">Active Projects</dt>
-                <dd className="mt-1 text-3xl font-semibold text-gray-900">0</dd>
-                <div className="mt-3">
+                <dt className="text-sm font-medium text-gray-500 truncate">My Campaigns</dt>
+                <dd className="mt-1 text-3xl font-semibold text-gray-900">-</dd>
+                <div className="mt-3 flex space-x-2">
+                  <button
+                    onClick={() => router.push('/dashboard/campaigns')}
+                    className="text-sm text-indigo-600 hover:text-indigo-500"
+                  >
+                    View All →
+                  </button>
                   <button
                     onClick={() => router.push('/generate')}
                     className="text-sm text-indigo-600 hover:text-indigo-500"
                   >
-                    Create New Project →
+                    Create New →
                   </button>
                 </div>
               </div>

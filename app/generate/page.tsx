@@ -85,7 +85,7 @@ export default function GeneratePage() {
     setIsSubmitting(true);
 
     try {
-      console.log('💾 Saving generation data to localStorage...');
+      console.log('💾 Saving generation data to localStorage and Firestore...');
 
       // Generate unique campaign ID
       const campaignId = crypto.randomUUID();
@@ -103,6 +103,24 @@ export default function GeneratePage() {
 
       // Track the active campaign ID
       localStorage.setItem('activeCampaignId', campaignId);
+
+      // Save to Firestore for persistence
+      try {
+        const { httpsCallable } = await import('firebase/functions');
+        const { functions } = await import('@/lib/firebase/config');
+        const saveCampaignFn = httpsCallable(functions, 'saveCampaign');
+        await saveCampaignFn({
+          campaignId,
+          campaignData: {
+            ...campaignData,
+            status: 'draft',
+          },
+        });
+        console.log('✅ Campaign saved to Firestore');
+      } catch (firestoreError) {
+        console.warn('⚠️ Failed to save to Firestore (continuing with localStorage):', firestoreError);
+        // Continue even if Firestore save fails
+      }
 
       // Clear draft after successful submission
       localStorage.removeItem('adGenerationDraft');

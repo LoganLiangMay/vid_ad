@@ -44,24 +44,92 @@ export default function GenerateResultsPage() {
       return;
     }
 
-    // Get generation parameters from localStorage using campaign ID
-    const campaignKey = `campaign_${campaignId}`;
-    const campaignDataStr = localStorage.getItem(campaignKey);
+    // Load campaign data from localStorage or Firestore
+    const loadCampaignData = async () => {
+      // Try localStorage first (faster)
+      const campaignKey = `campaign_${campaignId}`;
+      const campaignDataStr = localStorage.getItem(campaignKey);
 
-    if (!campaignDataStr) {
+      if (campaignDataStr) {
+        try {
+          const parsedData = JSON.parse(campaignDataStr);
+          console.log('📋 Campaign loaded from localStorage:', campaignId);
+          startGeneration(parsedData, campaignId);
+          return;
+        } catch (error) {
+          console.error('Error parsing localStorage data:', error);
+        }
+      }
+
+      // If not in localStorage, try Firestore
+      try {
+        const { httpsCallable } = await import('firebase/functions');
+        const { functions } = await import('@/lib/firebase/config');
+        const getCampaignFn = httpsCallable(functions, 'getCampaign');
+        const result = await getCampaignFn({ campaignId });
+        const data = result.data as any;
+
+        if (data.success && data.campaign) {
+          const campaign = data.campaign;
+          // Convert Firestore timestamps to numbers if needed
+          const parsedData = {
+            ...campaign,
+            createdAt: campaign.createdAt?.toMillis?.() || campaign.createdAt || Date.now(),
+          };
+          
+          // Save to localStorage for faster access next time
+          localStorage.setItem(campaignKey, JSON.stringify(parsedData));
+          console.log('📋 Campaign loaded from Firestore:', campaignId);
+          startGeneration(parsedData, campaignId);
+          return;
+        }
+      } catch (firestoreError) {
+        console.warn('⚠️ Failed to load from Firestore:', firestoreError);
+      }
+
+      // If neither worked, show error
       console.error('❌ Campaign data not found for ID:', campaignId);
       alert('Campaign data not found. Please create a new campaign.');
       router.push('/generate');
-      return;
-    }
+    };
 
-    try {
-      const parsedData = JSON.parse(campaignDataStr);
+    const startGeneration = (parsedData: any, campaignId: string) => {
       console.log('🚀 Starting Replicate video generation with params:', parsedData);
       console.log('📋 Campaign ID:', campaignId);
 
       // Store generation data in state for use throughout component
       setGenerationData(parsedData);
+
+      // Check if there are existing videos in the campaign data
+      const existingVideos = parsedData.videos || [];
+      const completedVideos = existingVideos.filter((v: any) => v.status === 'completed');
+      const inProgressVideos = existingVideos.filter((v: any) => v.status === 'generating' || v.status === 'processing');
+      const hasInProgressVideos = inProgressVideos.length > 0;
+      
+      if (existingVideos.length > 0) {
+        console.log(`📹 Campaign has ${existingVideos.length} videos (${completedVideos.length} completed, ${inProgressVideos.length} in progress)`);
+        
+        // Show existing videos immediately
+        setVideos(existingVideos.map((v: any) => ({
+          id: v.id,
+          url: v.url || '',
+          thumbnail: v.thumbnail || '',
+          status: v.status === 'completed' ? 'completed' : (v.status === 'failed' ? 'failed' : 'generating'),
+          progress: v.status === 'completed' ? 100 : 0,
+          duration: v.duration || parsedData.duration || 6,
+          metadata: v.metadata || {},
+        })));
+
+        // Only set generating if there are videos still in progress
+        if (hasInProgressVideos) {
+          setIsGenerating(true);
+          setGenerationPhase('Resuming video generation...');
+        } else {
+          setIsGenerating(false);
+          setGenerationPhase('All videos completed!');
+          setCurrentProgress(100);
+        }
+      }
 
       const variations = parsedData.variations || 2;
       const duration = parsedData.duration || 6;
@@ -88,7 +156,58 @@ export default function GenerateResultsPage() {
         return prompts.slice(0, variations);
       };
 
-    const initializeVideoGeneration = async () => {
+      // Update campaign status in Firestore and localStorage
+      const updateCampaignStatus = async (status: string, updates?: any) => {
+        // Always update localStorage
+        const campaignKey = `campaign_${campaignId}`;
+        const campaignDataStr = localStorage.getItem(campaignKey);
+        if (campaignDataStr) {
+          try {
+            const campaignData = JSON.parse(campaignDataStr);
+            const updatedData = {
+              ...campaignData,
+              status,
+              ...updates,
+              updatedAt: Date.now(),
+            };
+            localStorage.setItem(campaignKey, JSON.stringify(updatedData));
+          } catch (e) {
+            console.warn('Failed to update localStorage:', e);
+          }
+        }
+
+        // Try to update Firestore (but don't fail if it's not available)
+        try {
+          const { httpsCallable } = await import('firebase/functions');
+          const { functions } = await import('@/lib/firebase/config');
+          const updateCampaignFn = httpsCallable(functions, 'updateCampaign');
+          await updateCampaignFn({
+            campaignId,
+            updates: {
+              status,
+              ...updates,
+            },
+          });
+        } catch (error) {
+          console.warn('⚠️ Failed to update campaign status in Firestore (continuing with localStorage):', error);
+        }
+      };
+
+      // Only start new generation if we don't have all videos yet
+      const variations = parsedData.variations || 2;
+      const needsNewVideos = !existingVideos.length || existingVideos.length < variations;
+
+      if (needsNewVideos) {
+        // Update status to generating
+        updateCampaignStatus('generating');
+      }
+
+      const initializeVideoGeneration = async () => {
+        // Skip if we already have all videos
+        if (!needsNewVideos && !hasInProgressVideos) {
+          console.log('✅ All videos already exist, skipping generation');
+          return;
+        }
       const prompts = generateVideoPrompts();
       const initialVideos: VideoResult[] = [];
 
@@ -135,34 +254,116 @@ export default function GenerateResultsPage() {
         });
       }
 
-      setVideos(initialVideos);
+      // If we have existing videos, merge them with new ones
+      if (hasInProgressVideos && existingVideos.length > 0) {
+        // Only add new videos if we don't have all variations yet
+        const existingIds = new Set(existingVideos.map((v: any) => v.id));
+        const newVideos = initialVideos.filter(v => !existingIds.has(v.id));
+        setVideos([...existingVideos.map((v: any) => ({
+          id: v.id,
+          url: v.url || '',
+          thumbnail: v.thumbnail || '',
+          status: v.status === 'completed' ? 'completed' : 'generating',
+          progress: v.status === 'completed' ? 100 : 0,
+          duration: v.duration || duration,
+          metadata: v.metadata || {},
+        })), ...newVideos]);
+      } else {
+        setVideos(initialVideos);
+      }
+      
       setGenerationPhase('Video generation started - this may take 10-20 minutes per video...');
       setCurrentProgress(20);
 
       // Poll each video individually and update UI as they complete
       const pollVideo = async (video: VideoResult, index: number) => {
+        // Skip if already completed
+        if (video.status === 'completed') {
+          console.log(`⏭️ Skipping completed video ${video.id}`);
+          return;
+        }
+        
         try {
-          console.log(`🎬 Starting to poll video ${index + 1}/${initialVideos.length}`);
+          console.log(`🎬 Starting to poll video ${index + 1}`);
 
           // Wait for this specific video to complete (20 minute timeout)
           const status = await replicateService.waitForCompletion(video.id, 1200000);
 
+          // Upload to S3 and save to campaign
+          let finalUrl = status.url || '';
+          let finalThumbnail = status.thumbnail || `https://picsum.photos/seed/${video.id}/400/600`;
+
+          try {
+            const { httpsCallable } = await import('firebase/functions');
+            const { functions } = await import('@/lib/firebase/config');
+            const uploadVideoFn = httpsCallable(functions, 'uploadVideoToS3');
+            const uploadResult = await uploadVideoFn({
+              videoUrl: status.url,
+              campaignId,
+              videoId: video.id,
+              thumbnailUrl: status.thumbnail,
+            });
+            const uploadData = uploadResult.data as any;
+            if (uploadData.success) {
+              finalUrl = uploadData.videoUrl;
+              finalThumbnail = uploadData.thumbnailUrl || finalThumbnail;
+              console.log(`✅ Video uploaded to S3: ${uploadData.s3Key}`);
+            }
+          } catch (uploadError) {
+            console.warn('⚠️ Failed to upload to S3, using Replicate URL:', uploadError);
+            // Continue with Replicate URL if S3 upload fails
+          }
+
           // Update this specific video in the state
+          const completedVideo = {
+            id: video.id,
+            url: finalUrl,
+            thumbnail: finalThumbnail,
+            status: 'completed' as const,
+            progress: 100,
+            duration: video.duration,
+            metadata: video.metadata,
+          };
+
           setVideos(prevVideos =>
             prevVideos.map(v =>
-              v.id === video.id
-                ? {
-                    ...v,
-                    url: status.url || '',
-                    thumbnail: status.thumbnail || `https://picsum.photos/seed/${video.id}/400/600`,
-                    status: 'completed' as const,
-                    progress: 100,
-                  }
-                : v
+              v.id === video.id ? completedVideo : v
             )
           );
 
-          console.log(`✅ Video ${index + 1}/${initialVideos.length} completed`);
+          // Save to campaign data in localStorage
+          const campaignKey = `campaign_${campaignId}`;
+          const campaignDataStr = localStorage.getItem(campaignKey);
+          if (campaignDataStr) {
+            try {
+              const campaignData = JSON.parse(campaignDataStr);
+              const videos = campaignData.videos || [];
+              const videoIndex = videos.findIndex((v: any) => v.id === video.id);
+              
+              if (videoIndex >= 0) {
+                videos[videoIndex] = completedVideo;
+              } else {
+                videos.push(completedVideo);
+              }
+
+              campaignData.videos = videos;
+              campaignData.updatedAt = Date.now();
+              localStorage.setItem(campaignKey, JSON.stringify(campaignData));
+            } catch (e) {
+              console.warn('Failed to update campaign in localStorage:', e);
+            }
+          }
+
+          // Update campaign status in Firestore
+          setVideos((currentVideos) => {
+            const updatedVideos = currentVideos.map(v => v.id === video.id ? completedVideo : v);
+            updateCampaignStatus('generating', {
+              videos: updatedVideos,
+            });
+            return updatedVideos;
+          });
+
+          console.log(`✅ Video ${index + 1} completed and saved`);
         } catch (error) {
           console.error(`❌ Error generating video ${video.id}:`, error);
 
@@ -181,23 +382,59 @@ export default function GenerateResultsPage() {
         }
       };
 
-      // Start polling all videos in parallel
-      await Promise.allSettled(
-        initialVideos.map((video, index) => pollVideo(video, index))
-      );
+      // Start polling all videos in parallel (only those that aren't completed)
+      // Get current videos state (may include existing videos if resuming)
+      const currentVideos = hasInProgressVideos && existingVideos.length > 0
+        ? [...existingVideos.map((v: any) => ({
+            id: v.id,
+            url: v.url || '',
+            thumbnail: v.thumbnail || '',
+            status: v.status === 'completed' ? 'completed' : 'generating',
+            progress: v.status === 'completed' ? 100 : 0,
+            duration: v.duration || duration,
+            metadata: v.metadata || {},
+          })), ...initialVideos.filter(v => !existingVideos.some((ev: any) => ev.id === v.id))]
+        : initialVideos;
+      
+      const videosToPoll = currentVideos.filter(v => v.status !== 'completed');
+      
+      if (videosToPoll.length > 0) {
+        await Promise.allSettled(
+          videosToPoll.map((video, index) => pollVideo(video, index))
+        );
+        // All videos processed (completed or failed)
+        setGenerationPhase('Video generation complete!');
+        setCurrentProgress(100);
+        setIsGenerating(false);
+      } else {
+        // All videos already completed
+        setIsGenerating(false);
+        setGenerationPhase('All videos completed!');
+        setCurrentProgress(100);
+      }
 
-      // All videos processed (completed or failed)
-      setGenerationPhase('Video generation complete!');
-      setCurrentProgress(100);
-      setIsGenerating(false);
+      // Update campaign status to completed
+      // Get the final state of videos after all polling is done
+      setTimeout(() => {
+        setVideos((currentVideos) => {
+          const allCompleted = currentVideos.length > 0 && currentVideos.every(v => v.status === 'completed');
+          updateCampaignStatus(allCompleted ? 'completed' : 'failed', {
+            videos: currentVideos.map(v => ({
+              id: v.id,
+              url: v.url,
+              status: v.status,
+              thumbnail: v.thumbnail,
+            })),
+          });
+          return currentVideos;
+        });
+      }, 1000); // Small delay to ensure state is updated
     };
 
       initializeVideoGeneration();
-    } catch (error) {
-      console.error('❌ Error initializing campaign:', error);
-      alert('Error loading campaign data. Please try again.');
-      router.push('/generate');
-    }
+    };
+
+    loadCampaignData();
   }, [router]);
 
   const handleDownload = (video: VideoResult) => {
@@ -388,20 +625,34 @@ export default function GenerateResultsPage() {
                   </div>
 
                   {/* Actions */}
-                  <div className="mt-4 flex space-x-2">
+                  <div className="mt-4 flex flex-col space-y-2">
                     {video.status === 'completed' && (
                       <>
+                        <div className="flex space-x-2">
+                          <button
+                            onClick={() => handleDownload(video)}
+                            className="flex-1 bg-blue-600 text-white px-3 py-2 rounded-md text-sm hover:bg-blue-700"
+                          >
+                            Download
+                          </button>
+                          <button
+                            onClick={() => handleRegenerateVideo(index)}
+                            className="flex-1 bg-gray-100 text-gray-700 px-3 py-2 rounded-md text-sm hover:bg-gray-200"
+                          >
+                            Regenerate
+                          </button>
+                        </div>
                         <button
-                          onClick={() => handleDownload(video)}
-                          className="flex-1 bg-blue-600 text-white px-3 py-2 rounded-md text-sm hover:bg-blue-700"
+                          onClick={() => {
+                            const campaignId = new URLSearchParams(window.location.search).get('campaignId') || '';
+                            router.push(`/generate/voiceover?videoId=${video.id}&campaignId=${campaignId}`);
+                          }}
+                          className="w-full bg-green-600 text-white px-3 py-2 rounded-md text-sm hover:bg-green-700 flex items-center justify-center gap-2"
                         >
-                          Download
-                        </button>
-                        <button
-                          onClick={() => handleRegenerateVideo(index)}
-                          className="flex-1 bg-gray-100 text-gray-700 px-3 py-2 rounded-md text-sm hover:bg-gray-200"
-                        >
-                          Regenerate
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                          </svg>
+                          Add Voiceover
                         </button>
                       </>
                     )}

@@ -46,6 +46,9 @@ __exportStar(require("./auth"), exports);
 __exportStar(require("./video"), exports);
 __exportStar(require("./openai"), exports);
 __exportStar(require("./replicate"), exports);
+__exportStar(require("./replicateVoice"), exports);
+__exportStar(require("./campaigns"), exports);
+__exportStar(require("./s3Upload"), exports);
 // Health check function
 exports.healthCheck = functions.https.onRequest(async (_req, res) => {
     res.status(200).json({

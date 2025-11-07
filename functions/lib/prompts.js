@@ -4,6 +4,8 @@
  * Provides modular, versioned prompt templates for different ad types and brand tones
  */
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.generateViralHook = generateViralHook;
+exports.scoreHookViralPotential = scoreHookViralPotential;
 exports.generatePrompt = generatePrompt;
 exports.generateVariationPrompt = generateVariationPrompt;
 exports.validatePromptParams = validatePromptParams;
@@ -67,6 +69,131 @@ const AD_TYPE_STRUCTURES = {
         focus: 'Make the problem deeply relatable. Position product as the hero that saves the day.',
     },
 };
+const VIRAL_HOOK_TEMPLATES = [
+    {
+        type: 'question',
+        pattern: 'Question that creates curiosity or addresses pain point',
+        description: 'Engages viewers by asking a relatable question',
+        examples: [
+            'Did you know that {statistic}?',
+            'What if you could {benefit}?',
+            'Have you ever wondered why {problem}?',
+            'What\'s the one thing {target audience} needs most?'
+        ]
+    },
+    {
+        type: 'surprising-fact',
+        pattern: 'Unexpected statistic or fact that challenges assumptions',
+        description: 'Captures attention with surprising information',
+        examples: [
+            '99% of people don\'t know that {fact}',
+            'Here\'s what {industry} doesn\'t want you to know',
+            'The shocking truth about {topic}',
+            '{Number}% of {audience} are making this mistake'
+        ]
+    },
+    {
+        type: 'bold-statement',
+        pattern: 'Confident, attention-grabbing declaration',
+        description: 'Makes a strong claim that demands attention',
+        examples: [
+            'This will change everything you know about {topic}',
+            'Stop doing {common mistake} right now',
+            'The {product} that {audience} have been waiting for',
+            'This is the {product} that {solves problem}'
+        ]
+    },
+    {
+        type: 'pattern-interrupt',
+        pattern: 'Breaks expected pattern to grab attention',
+        description: 'Unexpected opening that disrupts viewer expectations',
+        examples: [
+            'Stop what you\'re doing and watch this',
+            'Forget everything you thought you knew about {topic}',
+            'I\'m about to show you something that will blow your mind',
+            'This isn\'t your typical {product category}'
+        ]
+    },
+    {
+        type: 'curiosity-gap',
+        pattern: 'Creates information gap that viewer wants to fill',
+        description: 'Teases information to create curiosity',
+        examples: [
+            'The secret {audience} don\'t know about {topic}',
+            'Here\'s why {common belief} is completely wrong',
+            'The {number} things {industry} doesn\'t want you to know',
+            'What {experts} aren\'t telling you about {topic}'
+        ]
+    }
+];
+/**
+ * Generate viral hook using templates and AI optimization
+ */
+function generateViralHook(params, hookType) {
+    // Select appropriate hook type based on brand tone if not specified
+    if (!hookType) {
+        const toneToHookMap = {
+            professional: 'surprising-fact',
+            casual: 'question',
+            playful: 'pattern-interrupt',
+            luxury: 'bold-statement',
+            inspiring: 'curiosity-gap',
+            urgent: 'bold-statement'
+        };
+        hookType = toneToHookMap[params.brandTone];
+    }
+    const template = VIRAL_HOOK_TEMPLATES.find(t => t.type === hookType);
+    if (!template || !template.examples || template.examples.length === 0) {
+        return `Introducing ${params.productName}`;
+    }
+    const example = template.examples[Math.floor(Math.random() * template.examples.length)];
+    if (!example) {
+        return `Introducing ${params.productName}`;
+    }
+    // Replace placeholders with actual values
+    let hook = example
+        .replace('{product}', params.productName)
+        .replace('{topic}', params.productName)
+        .replace('{audience}', params.targetAudience || 'people')
+        .replace('{benefit}', params.uniqueSellingPoints?.[0] || 'get better results')
+        .replace('{problem}', params.productDescription.split('.')[0] || 'this problem')
+        .replace('{industry}', 'the industry')
+        .replace('{statistic}', 'most people')
+        .replace('{number}', '90')
+        .replace('{experts}', 'experts')
+        .replace('{common mistake}', 'what you\'re doing now')
+        .replace('{common belief}', 'what everyone thinks')
+        .replace('{product category}', params.productName)
+        .replace('{solves problem}', 'solves your problem');
+    return hook;
+}
+/**
+ * Score hook for viral potential (1-10 scale)
+ */
+function scoreHookViralPotential(hook) {
+    let score = 5; // Base score
+    // Length check (optimal: 5-15 words)
+    const wordCount = hook.split(' ').length;
+    if (wordCount >= 5 && wordCount <= 15)
+        score += 2;
+    if (wordCount > 20)
+        score -= 2;
+    // Question marks increase engagement
+    if (hook.includes('?'))
+        score += 1;
+    // Numbers/statistics increase credibility
+    if (/\d+/.test(hook))
+        score += 1;
+    // Emotional words
+    const emotionalWords = ['shocking', 'secret', 'amazing', 'incredible', 'revolutionary', 'game-changing'];
+    if (emotionalWords.some(word => hook.toLowerCase().includes(word)))
+        score += 1;
+    // Pattern interrupt indicators
+    if (hook.toLowerCase().includes('stop') || hook.toLowerCase().includes('forget'))
+        score += 1;
+    // Cap at 10
+    return Math.min(10, Math.max(1, score));
+}
 /**
  * Scene timing optimization based on duration
  */
@@ -88,14 +215,15 @@ function generateSystemPrompt(params) {
     const toneProfile = BRAND_TONE_PROFILES[params.brandTone];
     const adType = params.adType || 'product-demo';
     const adStructure = AD_TYPE_STRUCTURES[adType];
-    return `You are an expert advertising script writer and creative director with 15+ years of experience in video marketing.
+    return `You are an expert advertising script writer and creative director with 15+ years of experience in video marketing and viral content creation.
 
 Your expertise includes:
-- Creating compelling hooks that capture attention in the first 3 seconds
-- Writing emotionally resonant copy that drives conversions
-- Understanding audience psychology and pain points
+- Creating compelling hooks that capture attention in the first 3 seconds using viral psychology
+- Writing emotionally resonant copy that drives conversions and shares
+- Understanding audience psychology, pain points, and what makes content go viral
 - Crafting clear, memorable calls-to-action
 - Optimizing scripts for different platforms (social media, TV, digital)
+- Applying viral hook patterns: questions, surprising facts, bold statements, pattern interrupts, and curiosity gaps
 
 For this script, you must adopt this brand tone:
 **${params.brandTone.toUpperCase()} TONE**
@@ -108,12 +236,18 @@ Structure: ${adStructure.structure}
 Focus: ${adStructure.focus}
 
 CRITICAL REQUIREMENTS:
-1. Hook viewers in the first 3 seconds - use a question, surprising fact, or bold statement
-2. Every word must serve a purpose - no filler
-3. Include a clear, specific call-to-action
-4. Match the ${params.brandTone} tone consistently throughout
-5. Make it scannable - viewers should understand the value even with sound off
-6. Use scene descriptions that are specific and actionable for video production`;
+1. Hook viewers in the first 3 seconds using viral hook patterns:
+   - Question hooks: "Did you know...", "What if...", "Have you ever..."
+   - Surprising fact hooks: "99% of people don't know...", "Here's what [industry] doesn't want you to know"
+   - Bold statement hooks: "This will change everything...", "Stop doing [X] right now"
+   - Pattern interrupt hooks: "Stop what you're doing...", "Forget everything you thought..."
+   - Curiosity gap hooks: "The secret nobody tells you...", "What [experts] aren't telling you..."
+2. Generate 3-5 hook variations and score them for viral potential (consider: length, emotional impact, pattern interrupt, curiosity gap)
+3. Every word must serve a purpose - no filler
+4. Include a clear, specific call-to-action
+5. Match the ${params.brandTone} tone consistently throughout
+6. Make it scannable - viewers should understand the value even with sound off
+7. Use scene descriptions that are specific and actionable for video production`;
 }
 /**
  * Generate optimized user prompt with all parameters
@@ -147,7 +281,24 @@ ${uspSection}
 Provide the script in this EXACT JSON format:
 {
   "title": "Catchy ad title that captures the core message",
-  "hook": "The attention-grabbing opening line or concept",
+  "hook": "The attention-grabbing opening line or concept (use viral hook pattern)",
+  "hookVariations": [
+    {
+      "text": "First hook variation",
+      "type": "question|surprising-fact|bold-statement|pattern-interrupt|curiosity-gap",
+      "viralScore": 8
+    },
+    {
+      "text": "Second hook variation",
+      "type": "question|surprising-fact|bold-statement|pattern-interrupt|curiosity-gap",
+      "viralScore": 7
+    },
+    {
+      "text": "Third hook variation",
+      "type": "question|surprising-fact|bold-statement|pattern-interrupt|curiosity-gap",
+      "viralScore": 9
+    }
+  ],
   "scenes": [
     {
       "id": 1,

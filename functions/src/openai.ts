@@ -5,6 +5,7 @@ import {
   generatePrompt,
   generateVariationPrompt,
   validatePromptParams,
+  scoreHookViralPotential,
   type BrandTone,
   type AdType,
   type ScriptGenerationParams,
@@ -167,6 +168,25 @@ export const generateScript = functions.https.onCall(async (data, context) => {
       const totalDuration = script.scenes.reduce((sum: number, scene: any) => sum + (scene.duration || 0), 0);
       if (Math.abs(totalDuration - duration) > 2) {
         console.warn(`Scene timing mismatch: expected ${duration}s, got ${totalDuration}s`);
+      }
+
+      // Enhance script with hook analysis if hookVariations exist
+      if (script.hookVariations && Array.isArray(script.hookVariations)) {
+        // Score each hook variation if not already scored
+        script.hookVariations = script.hookVariations.map((hookVar: any) => {
+          if (!hookVar.viralScore) {
+            hookVar.viralScore = scoreHookViralPotential(hookVar.text);
+          }
+          return hookVar;
+        });
+
+        // Sort by viral score (highest first)
+        script.hookVariations.sort((a: any, b: any) => (b.viralScore || 0) - (a.viralScore || 0));
+
+        // Use highest scoring hook as primary hook if not set
+        if (!script.hook && script.hookVariations.length > 0) {
+          script.hook = script.hookVariations[0].text;
+        }
       }
 
       scripts.push({

@@ -9,6 +9,9 @@ export * from './auth';
 export * from './video';
 export * from './openai';
 export * from './replicate';
+export * from './replicateVoice';
+export * from './campaigns';
+export * from './s3Upload';
 
 // Health check function
 export const healthCheck = functions.https.onRequest(async (_req, res) => {

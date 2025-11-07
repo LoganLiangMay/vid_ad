@@ -149,6 +149,22 @@ exports.generateScript = functions.https.onCall(async (data, context) => {
             if (Math.abs(totalDuration - duration) > 2) {
                 console.warn(`Scene timing mismatch: expected ${duration}s, got ${totalDuration}s`);
             }
+            // Enhance script with hook analysis if hookVariations exist
+            if (script.hookVariations && Array.isArray(script.hookVariations)) {
+                // Score each hook variation if not already scored
+                script.hookVariations = script.hookVariations.map((hookVar) => {
+                    if (!hookVar.viralScore) {
+                        hookVar.viralScore = (0, prompts_1.scoreHookViralPotential)(hookVar.text);
+                    }
+                    return hookVar;
+                });
+                // Sort by viral score (highest first)
+                script.hookVariations.sort((a, b) => (b.viralScore || 0) - (a.viralScore || 0));
+                // Use highest scoring hook as primary hook if not set
+                if (!script.hook && script.hookVariations.length > 0) {
+                    script.hook = script.hookVariations[0].text;
+                }
+            }
             scripts.push({
                 variationNumber: i,
                 script,
