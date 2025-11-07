@@ -38,8 +38,8 @@ interface AuthContextType {
   error: string | null;
   signup: (email: string, password: string, displayName?: string) => Promise<UserCredential>;
   login: (email: string, password: string, rememberMe?: boolean) => Promise<UserCredential>;
-  loginWithGoogle: () => Promise<void>;
-  loginWithApple: () => Promise<void>;
+  loginWithGoogle: () => Promise<UserCredential | undefined>;
+  loginWithApple: () => Promise<UserCredential | undefined>;
   logout: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
   updateUserProfile: (data: Partial<UserProfile>) => Promise<void>;
