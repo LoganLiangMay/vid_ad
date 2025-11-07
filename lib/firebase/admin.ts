@@ -1,23 +1,25 @@
-import { initializeApp, getApps, applicationDefault } from 'firebase-admin/app';
+import { initializeApp, getApps, getApp, applicationDefault, App } from 'firebase-admin/app';
 import { getAuth, Auth } from 'firebase-admin/auth';
 import { getFirestore, Firestore } from 'firebase-admin/firestore';
 import { getStorage, Storage } from 'firebase-admin/storage';
 
 // Initialize admin app with applicationDefault() for Cloud Functions
 // According to Firebase Admin SDK docs, this is the correct method for Cloud Run/Cloud Functions
-function initAdmin() {
+function initAdmin(): App {
   if (getApps().length === 0) {
     console.log('🔧 [Admin] Initializing with applicationDefault() for Cloud Functions');
     try {
-      initializeApp({
+      const app = initializeApp({
         credential: applicationDefault(),
       });
       console.log('✅ [Admin] Firebase Admin initialized successfully');
+      return app;
     } catch (error: any) {
       console.error('❌ [Admin] Failed to initialize Firebase Admin:', error.message);
       throw error;
     }
   }
+  return getApp();
 }
 
 // Lazy getters - only initialize when accessed
@@ -27,24 +29,27 @@ let _adminStorage: Storage | null = null;
 
 export function getAdminAuth(): Auth {
   if (!_adminAuth) {
-    initAdmin();
-    _adminAuth = getAuth();
+    const app = initAdmin();
+    _adminAuth = getAuth(app);
+    console.log('✅ [Admin] Auth service initialized');
   }
   return _adminAuth;
 }
 
 export function getAdminDb(): Firestore {
   if (!_adminDb) {
-    initAdmin();
-    _adminDb = getFirestore();
+    const app = initAdmin();
+    _adminDb = getFirestore(app);
+    console.log('✅ [Admin] Firestore service initialized');
   }
   return _adminDb;
 }
 
 export function getAdminStorage(): Storage {
   if (!_adminStorage) {
-    initAdmin();
-    _adminStorage = getStorage();
+    const app = initAdmin();
+    _adminStorage = getStorage(app);
+    console.log('✅ [Admin] Storage service initialized');
   }
   return _adminStorage;
 }
@@ -57,7 +62,8 @@ export function getAdminStorage(): Storage {
 // Helper functions for common admin operations
 export async function verifyIdToken(token: string) {
   try {
-    const decodedToken = await adminAuth.verifyIdToken(token);
+    const auth = getAdminAuth();
+    const decodedToken = await auth.verifyIdToken(token);
     return decodedToken;
   } catch (error) {
     console.error('Error verifying ID token:', error);
@@ -67,7 +73,8 @@ export async function verifyIdToken(token: string) {
 
 export async function createCustomToken(uid: string, claims?: object) {
   try {
-    const customToken = await adminAuth.createCustomToken(uid, claims);
+    const auth = getAdminAuth();
+    const customToken = await auth.createCustomToken(uid, claims);
     return customToken;
   } catch (error) {
     console.error('Error creating custom token:', error);
@@ -77,7 +84,8 @@ export async function createCustomToken(uid: string, claims?: object) {
 
 export async function getUserByEmail(email: string) {
   try {
-    const user = await adminAuth.getUserByEmail(email);
+    const auth = getAdminAuth();
+    const user = await auth.getUserByEmail(email);
     return user;
   } catch (error) {
     console.error('Error fetching user by email:', error);
@@ -87,7 +95,8 @@ export async function getUserByEmail(email: string) {
 
 export async function setCustomUserClaims(uid: string, claims: object) {
   try {
-    await adminAuth.setCustomUserClaims(uid, claims);
+    const auth = getAdminAuth();
+    await auth.setCustomUserClaims(uid, claims);
     return true;
   } catch (error) {
     console.error('Error setting custom claims:', error);
