@@ -254,7 +254,6 @@ export default function GeneratePage() {
             form={form}
             onSubmit={onSubmit}
             isSubmitting={isSubmitting}
-            campaignId={campaignId}
             onStepChange={(step, formData) => {
               // Save step progress to Firestore
               if (campaignId) {

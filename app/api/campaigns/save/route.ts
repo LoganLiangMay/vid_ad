@@ -1,9 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { adminAuth } from '@/lib/firebase/admin';
+import * as admin from 'firebase-admin';
 import { createCampaign, addSceneImages, addVideoToCampaign } from '@/lib/firebase/campaigns';
 import { uploadImageToS3, uploadVideoToS3 } from '@/lib/aws/s3';
 import type { CampaignInput } from '@/lib/types/campaign';
 import { cookies } from 'next/headers';
+
+// Initialize Firebase Admin directly in the route
+function getFirebaseAdmin() {
+  try {
+    if (admin.apps.length === 0) {
+      admin.initializeApp({
+        projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'vid-ad',
+      });
+    }
+    return admin;
+  } catch (error: any) {
+    console.error('❌ [API /campaigns/save] Failed to initialize Firebase Admin:', error);
+    throw error;
+  }
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -15,7 +30,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const decodedToken = await adminAuth.verifySessionCookie(sessionCookie);
+    const firebaseAdmin = getFirebaseAdmin();
+    const decodedToken = await firebaseAdmin.auth().verifySessionCookie(sessionCookie);
     const userId = decodedToken.uid;
 
     // Parse form data

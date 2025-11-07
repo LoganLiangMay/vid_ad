@@ -3,545 +3,378 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ReplicateVideoService } from '@/lib/services/replicateVideoService';
 
-interface VideoResult {
-  id: string;
-  url: string;
-  thumbnail: string;
-  status: 'generating' | 'completed' | 'failed';
+interface TransitionVideo {
+  videoId: string;
+  predictionId: string;
+  transitionIndex: number;
+  fromSceneNumber: number;
+  toSceneNumber: number;
+  status: 'starting' | 'processing' | 'succeeded' | 'failed';
+  output?: string;
+  error?: string;
+  thumbnail?: string;
   progress: number;
-  duration: number;
-  metadata: {
-    productName: string;
-    brandTone: string;
-    orientation: string;
-    resolution: string;
-    prompt?: string;
-    model?: string;
-    cost?: number;
-  };
 }
 
 export default function GenerateResultsPage() {
   const router = useRouter();
-  const [videos, setVideos] = useState<VideoResult[]>([]);
+  const [campaignId, setCampaignId] = useState<string>('');
+  const [campaignData, setCampaignData] = useState<any>(null);
+  const [transitionVideos, setTransitionVideos] = useState<TransitionVideo[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [currentProgress, setCurrentProgress] = useState(0);
-  const [generationPhase, setGenerationPhase] = useState('Ready to generate');
-  const [generationData, setGenerationData] = useState<any>(null);
-  const [selectedImages, setSelectedImages] = useState<any[]>([]);
-  const [isReady, setIsReady] = useState(false);
-  const replicateService = ReplicateVideoService.getInstance();
+  const [currentPhase, setCurrentPhase] = useState('Loading campaign...');
+  const [progress, setProgress] = useState(0);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Get campaign ID from URL
-    const searchParams = new URLSearchParams(window.location.search);
-    const campaignId = searchParams.get('campaignId');
+    loadCampaign();
+  }, []);
 
-    if (!campaignId) {
-      console.error('❌ No campaign ID provided');
-      alert('Campaign not found. Please create a new campaign.');
+  const loadCampaign = async () => {
+    try {
+      // Get campaign ID from URL
+      const searchParams = new URLSearchParams(window.location.search);
+      const id = searchParams.get('campaignId');
+
+      if (!id) {
+        throw new Error('No campaign ID provided');
+      }
+
+      setCampaignId(id);
+      console.log('📋 Loading campaign:', id);
+
+      // Try localStorage first
+      const campaignKey = `campaign_${id}`;
+      const localData = localStorage.getItem(campaignKey);
+
+      if (localData) {
+        const parsed = JSON.parse(localData);
+        setCampaignData(parsed);
+        console.log('✅ Campaign loaded from localStorage');
+        console.log('🖼️ Storyboard images:', parsed.storyboardImages?.length || 0);
+
+        // Check if videos already exist
+        if (parsed.videos && parsed.videos.length > 0) {
+          console.log('📹 Found existing videos:', parsed.videos.length);
+          loadExistingVideos(parsed.videos);
+        }
+
+        return;
+      }
+
+      // Fallback to Firestore
+      const { httpsCallable } = await import('firebase/functions');
+      const { functions } = await import('@/lib/firebase/config');
+      const getCampaignFn = httpsCallable(functions, 'getCampaign');
+      const result = await getCampaignFn({ campaignId: id });
+      const data = result.data as any;
+
+      if (data.success && data.campaign) {
+        setCampaignData(data.campaign);
+        console.log('✅ Campaign loaded from Firestore');
+
+        // Check if videos already exist
+        if (data.campaign.videos && data.campaign.videos.length > 0) {
+          loadExistingVideos(data.campaign.videos);
+        }
+      } else {
+        throw new Error('Campaign not found');
+      }
+    } catch (err) {
+      console.error('❌ Error loading campaign:', err);
+      setError(err instanceof Error ? err.message : 'Failed to load campaign');
+      alert('Campaign not found. Redirecting to generate page...');
       router.push('/generate');
+    }
+  };
+
+  const loadExistingVideos = (videos: any[]) => {
+    const mapped = videos.map((v: any) => ({
+      videoId: v.videoId,
+      predictionId: v.predictionId,
+      transitionIndex: v.transitionIndex,
+      fromSceneNumber: v.fromSceneNumber,
+      toSceneNumber: v.toSceneNumber,
+      status: v.status || 'processing',
+      output: v.output,
+      error: v.error,
+      progress: v.status === 'succeeded' ? 100 : 0,
+    }));
+
+    setTransitionVideos(mapped);
+
+    // Check if any are still processing
+    const hasProcessing = mapped.some((v: any) =>
+      v.status === 'starting' || v.status === 'processing'
+    );
+
+    if (hasProcessing) {
+      setIsGenerating(true);
+      setCurrentPhase('Resuming video generation...');
+      startPolling(mapped.map((v: any) => v.videoId));
+    } else {
+      const allSucceeded = mapped.every((v: any) => v.status === 'succeeded');
+      if (allSucceeded) {
+        setCurrentPhase('All videos completed!');
+        setProgress(100);
+      }
+    }
+  };
+
+  const startGeneration = async () => {
+    if (!campaignData || !campaignData.storyboardImages) {
+      alert('No storyboard images found. Please complete the storyboard first.');
       return;
     }
 
-    // Load campaign data and selected images
-    const loadCampaignData = async () => {
-      // Try localStorage first (faster)
-      const campaignKey = `campaign_${campaignId}`;
-      const campaignDataStr = localStorage.getItem(campaignKey);
+    const scenes = campaignData.storyboardImages;
 
-      // Load selected images
-      const selectedKey = `campaign_${campaignId}_selected_images`;
-      const selectedImagesStr = localStorage.getItem(selectedKey);
-
-      if (campaignDataStr) {
-        try {
-          const parsedData = JSON.parse(campaignDataStr);
-          const parsedImages = selectedImagesStr ? JSON.parse(selectedImagesStr) : [];
-
-          console.log('📋 Campaign loaded from localStorage:', campaignId);
-          console.log('🖼️ Selected images:', parsedImages.length);
-
-          setGenerationData(parsedData);
-          setSelectedImages(parsedImages);
-          setIsReady(true);
-          return;
-        } catch (error) {
-          console.error('Error parsing localStorage data:', error);
-        }
-      }
-
-      // If not in localStorage, try Firestore
-      try {
-        const { httpsCallable } = await import('firebase/functions');
-        const { functions } = await import('@/lib/firebase/config');
-        const getCampaignFn = httpsCallable(functions, 'getCampaign');
-        const result = await getCampaignFn({ campaignId });
-        const data = result.data as any;
-
-        if (data.success && data.campaign) {
-          const campaign = data.campaign;
-          // Convert Firestore timestamps to numbers if needed
-          const parsedData = {
-            ...campaign,
-            createdAt: campaign.createdAt?.toMillis?.() || campaign.createdAt || Date.now(),
-          };
-
-          // Save to localStorage for faster access next time
-          localStorage.setItem(campaignKey, JSON.stringify(parsedData));
-          console.log('📋 Campaign loaded from Firestore:', campaignId);
-          setGenerationData(parsedData);
-          setIsReady(true);
-          return;
-        }
-      } catch (firestoreError) {
-        console.warn('⚠️ Failed to load from Firestore:', firestoreError);
-      }
-
-      // If neither worked, show error
-      console.error('❌ Campaign data not found for ID:', campaignId);
-      alert('Campaign data not found. Please create a new campaign.');
-      router.push('/generate');
-    };
-
-    loadCampaignData();
-  }, [router]);
-
-  // Function to start video generation (called by button click)
-  const startGeneration = () => {
-    if (!generationData || !isReady) {
-      console.error('❌ Generation data not ready');
-      return;
-    }
-
-    const searchParams = new URLSearchParams(window.location.search);
-    const campaignId = searchParams.get('campaignId');
-
-    if (!campaignId) {
-      console.error('❌ No campaign ID');
+    if (scenes.length < 2) {
+      alert('Need at least 2 scenes to create transitions');
       return;
     }
 
     setIsGenerating(true);
-    const parsedData = generationData;
-    console.log('🚀 Starting Replicate video generation with params:', parsedData);
-    console.log('📋 Campaign ID:', campaignId);
-    console.log('🖼️ Using selected images:', selectedImages.length);
-
-      // Check if there are existing videos in the campaign data
-      const existingVideos = parsedData.videos || [];
-      const completedVideos = existingVideos.filter((v: any) => v.status === 'completed');
-      const inProgressVideos = existingVideos.filter((v: any) => v.status === 'generating' || v.status === 'processing');
-      const hasInProgressVideos = inProgressVideos.length > 0;
-      
-      if (existingVideos.length > 0) {
-        console.log(`📹 Campaign has ${existingVideos.length} videos (${completedVideos.length} completed, ${inProgressVideos.length} in progress)`);
-        
-        // Show existing videos immediately
-        setVideos(existingVideos.map((v: any) => ({
-          id: v.id,
-          url: v.url || '',
-          thumbnail: v.thumbnail || '',
-          status: v.status === 'completed' ? 'completed' : (v.status === 'failed' ? 'failed' : 'generating'),
-          progress: v.status === 'completed' ? 100 : 0,
-          duration: v.duration || parsedData.duration || 6,
-          metadata: v.metadata || {},
-        })));
-
-        // Only set generating if there are videos still in progress
-        if (hasInProgressVideos) {
-          setIsGenerating(true);
-          setGenerationPhase('Resuming video generation...');
-        } else {
-          setIsGenerating(false);
-          setGenerationPhase('All videos completed!');
-          setCurrentProgress(100);
-        }
-      }
-
-      const variations = parsedData.variations || 2;
-      const duration = parsedData.duration || 6;
-
-      // Generate prompts based on campaign data
-      const generateVideoPrompts = () => {
-        const brandTone = parsedData.brandTone || 'professional';
-        const productName = parsedData.productName;
-        const description = parsedData.productDescription;
-
-        if (!productName) {
-          console.error('❌ Product name is required');
-          return [];
-        }
-
-        const prompts = [
-          `${brandTone} cinematic opening: ${productName} displayed prominently. ${description}. Professional lighting, clean composition, high-quality presentation, product-focused establishing shot. Camera: smooth tracking shot, 24fps cinematic`,
-
-          `${brandTone} detail sequence: Close-up highlights of ${productName} features and benefits. ${description}. Dynamic camera movement, smooth transitions, emphasis on quality and craftsmanship. Camera: medium shot with movement, 30fps`,
-
-          `${brandTone} lifestyle moment: ${productName} in real-world usage scenario showing product value. ${description}. Authentic presentation, professional quality, engaging composition. Camera: wide to close-up, 24fps cinematic`
-        ];
-
-        return prompts.slice(0, variations);
-      };
-
-      // Update campaign status in Firestore and localStorage
-      const updateCampaignStatus = async (status: string, updates?: any) => {
-        // Always update localStorage
-        const campaignKey = `campaign_${campaignId}`;
-        const campaignDataStr = localStorage.getItem(campaignKey);
-        if (campaignDataStr) {
-          try {
-            const campaignData = JSON.parse(campaignDataStr);
-            const updatedData = {
-              ...campaignData,
-              status,
-              ...updates,
-              updatedAt: Date.now(),
-            };
-            localStorage.setItem(campaignKey, JSON.stringify(updatedData));
-          } catch (e) {
-            console.warn('Failed to update localStorage:', e);
-          }
-        }
-
-        // Try to update Firestore (but don't fail if it's not available)
-        try {
-          const { httpsCallable } = await import('firebase/functions');
-          const { functions } = await import('@/lib/firebase/config');
-          const updateCampaignFn = httpsCallable(functions, 'updateCampaign');
-          await updateCampaignFn({
-            campaignId,
-            updates: {
-              status,
-              ...updates,
-            },
-          });
-        } catch (error) {
-          console.warn('⚠️ Failed to update campaign status in Firestore (continuing with localStorage):', error);
-        }
-      };
-
-      // Only start new generation if we don't have all videos yet
-      const needsNewVideos = !existingVideos.length || existingVideos.length < variations;
-
-      if (needsNewVideos) {
-        // Update status to generating
-        updateCampaignStatus('generating');
-      }
-
-      const initializeVideoGeneration = async () => {
-        // Skip if we already have all videos
-        if (!needsNewVideos && !hasInProgressVideos) {
-          console.log('✅ All videos already exist, skipping generation');
-          return;
-        }
-      const prompts = generateVideoPrompts();
-      const initialVideos: VideoResult[] = [];
-
-      // Phase 1: Initialize videos
-      setGenerationPhase('Connecting to Replicate API...');
-      setCurrentProgress(10);
-
-      for (let i = 0; i < Math.min(variations, prompts.length); i++) {
-        // Map orientation to aspect ratio
-        const orientationToAspectRatio: Record<string, string> = {
-          'portrait': '9:16',
-          'landscape': '16:9',
-          'square': '1:1'
-        };
-
-        const orientation = parsedData.orientation || 'portrait';
-        const replicateParams = {
-          prompt: prompts[i] || `Generate ${parsedData.productName || 'product'} video ad scene ${i + 1}`,
-          duration: duration,
-          aspectRatio: orientationToAspectRatio[orientation] as '16:9' | '4:3' | '1:1' | '3:4' | '9:16' | '21:9' | '9:21',
-          resolution: (parsedData.resolution || '720p') as '480p' | '720p' | '1080p',
-          model: (parsedData.videoModel || 'seedance-1-lite') as 'seedance-1-lite' | 'seedance-1-pro',
-        };
-
-        // Start generation with Replicate service
-        const replicateResult = await replicateService.generateVideo(replicateParams);
-
-        initialVideos.push({
-          id: replicateResult.id,
-          url: '',
-          thumbnail: '',
-          status: 'generating',
-          progress: 0,
-          duration: duration,
-          metadata: {
-            productName: parsedData.productName || 'Product',
-            brandTone: parsedData.brandTone || 'professional',
-            orientation: parsedData.orientation || 'portrait',
-            resolution: parsedData.resolution || '720p',
-            prompt: prompts[i],
-            model: replicateParams.model,
-            cost: replicateResult.metadata.cost,
-          },
-        });
-      }
-
-      // If we have existing videos, merge them with new ones
-      if (hasInProgressVideos && existingVideos.length > 0) {
-        // Only add new videos if we don't have all variations yet
-        const existingIds = new Set(existingVideos.map((v: any) => v.id));
-        const newVideos = initialVideos.filter(v => !existingIds.has(v.id));
-        setVideos([...existingVideos.map((v: any) => ({
-          id: v.id,
-          url: v.url || '',
-          thumbnail: v.thumbnail || '',
-          status: v.status === 'completed' ? 'completed' : 'generating',
-          progress: v.status === 'completed' ? 100 : 0,
-          duration: v.duration || duration,
-          metadata: v.metadata || {},
-        })), ...newVideos]);
-      } else {
-        setVideos(initialVideos);
-      }
-      
-      setGenerationPhase('Video generation started - this may take 10-20 minutes per video...');
-      setCurrentProgress(20);
-
-      // Poll each video individually and update UI as they complete
-      const pollVideo = async (video: VideoResult, index: number) => {
-        // Skip if already completed
-        if (video.status === 'completed') {
-          console.log(`⏭️ Skipping completed video ${video.id}`);
-          return;
-        }
-        
-        try {
-          console.log(`🎬 Starting to poll video ${index + 1}`);
-
-          // Wait for this specific video to complete (20 minute timeout)
-          const status = await replicateService.waitForCompletion(video.id, 1200000);
-
-          // Upload to S3 and save to campaign
-          let finalUrl = status.url || '';
-          let finalThumbnail = status.thumbnail || `https://picsum.photos/seed/${video.id}/400/600`;
-
-          try {
-            const { httpsCallable } = await import('firebase/functions');
-            const { functions } = await import('@/lib/firebase/config');
-            const uploadVideoFn = httpsCallable(functions, 'uploadVideoToS3');
-            const uploadResult = await uploadVideoFn({
-              videoUrl: status.url,
-              campaignId,
-              videoId: video.id,
-              thumbnailUrl: status.thumbnail,
-            });
-            const uploadData = uploadResult.data as any;
-            if (uploadData.success) {
-              finalUrl = uploadData.videoUrl;
-              finalThumbnail = uploadData.thumbnailUrl || finalThumbnail;
-              console.log(`✅ Video uploaded to S3: ${uploadData.s3Key}`);
-            }
-          } catch (uploadError) {
-            console.warn('⚠️ Failed to upload to S3, using Replicate URL:', uploadError);
-            // Continue with Replicate URL if S3 upload fails
-          }
-
-          // Update this specific video in the state
-          const completedVideo = {
-            id: video.id,
-            url: finalUrl,
-            thumbnail: finalThumbnail,
-            status: 'completed' as const,
-            progress: 100,
-            duration: video.duration,
-            metadata: video.metadata,
-          };
-
-          setVideos(prevVideos =>
-            prevVideos.map(v =>
-              v.id === video.id ? completedVideo : v
-            )
-          );
-
-          // Save to campaign data in localStorage
-          const campaignKey = `campaign_${campaignId}`;
-          const campaignDataStr = localStorage.getItem(campaignKey);
-          if (campaignDataStr) {
-            try {
-              const campaignData = JSON.parse(campaignDataStr);
-              const videos = campaignData.videos || [];
-              const videoIndex = videos.findIndex((v: any) => v.id === video.id);
-              
-              if (videoIndex >= 0) {
-                videos[videoIndex] = completedVideo;
-              } else {
-                videos.push(completedVideo);
-              }
-
-              campaignData.videos = videos;
-              campaignData.updatedAt = Date.now();
-              localStorage.setItem(campaignKey, JSON.stringify(campaignData));
-            } catch (e) {
-              console.warn('Failed to update campaign in localStorage:', e);
-            }
-          }
-
-          // Update campaign status in Firestore
-          setVideos((currentVideos) => {
-            const updatedVideos = currentVideos.map(v => v.id === video.id ? completedVideo : v);
-            updateCampaignStatus('generating', {
-              videos: updatedVideos,
-            });
-            return updatedVideos;
-          });
-
-          console.log(`✅ Video ${index + 1} completed and saved`);
-        } catch (error) {
-          console.error(`❌ Error generating video ${video.id}:`, error);
-
-          // Mark this video as failed
-          setVideos(prevVideos =>
-            prevVideos.map(v =>
-              v.id === video.id
-                ? {
-                    ...v,
-                    status: 'failed' as const,
-                    progress: 0,
-                  }
-                : v
-            )
-          );
-        }
-      };
-
-      // Start polling all videos in parallel (only those that aren't completed)
-      // Get current videos state (may include existing videos if resuming)
-      const currentVideos = hasInProgressVideos && existingVideos.length > 0
-        ? [...existingVideos.map((v: any) => ({
-            id: v.id,
-            url: v.url || '',
-            thumbnail: v.thumbnail || '',
-            status: v.status === 'completed' ? 'completed' : 'generating',
-            progress: v.status === 'completed' ? 100 : 0,
-            duration: v.duration || duration,
-            metadata: v.metadata || {},
-          })), ...initialVideos.filter(v => !existingVideos.some((ev: any) => ev.id === v.id))]
-        : initialVideos;
-      
-      const videosToPoll = currentVideos.filter(v => v.status !== 'completed');
-      
-      if (videosToPoll.length > 0) {
-        await Promise.allSettled(
-          videosToPoll.map((video, index) => pollVideo(video, index))
-        );
-        // All videos processed (completed or failed)
-        setGenerationPhase('Video generation complete!');
-        setCurrentProgress(100);
-        setIsGenerating(false);
-      } else {
-        // All videos already completed
-        setIsGenerating(false);
-        setGenerationPhase('All videos completed!');
-        setCurrentProgress(100);
-      }
-
-      // Update campaign status to completed
-      // Get the final state of videos after all polling is done
-      setTimeout(() => {
-        setVideos((currentVideos) => {
-          const allCompleted = currentVideos.length > 0 && currentVideos.every(v => v.status === 'completed');
-          updateCampaignStatus(allCompleted ? 'completed' : 'failed', {
-            videos: currentVideos.map(v => ({
-              id: v.id,
-              url: v.url,
-              status: v.status,
-              thumbnail: v.thumbnail,
-            })),
-          });
-          return currentVideos;
-        });
-      }, 1000); // Small delay to ensure state is updated
-    };
-
-      initializeVideoGeneration();
-  };
-
-  const handleDownload = (video: VideoResult) => {
-    window.open(video.url, '_blank');
-  };
-
-  const handleRegenerateVideo = async (index: number) => {
-    const video = videos[index];
-    if (!video) return;
-
-    setVideos(prevVideos =>
-      prevVideos.map((v, i) =>
-        i === index ? { ...v, status: 'generating' as const, progress: 0 } : v
-      )
-    );
-
-    // Map orientation to aspect ratio
-    const orientationToAspectRatio: Record<string, '16:9' | '4:3' | '1:1' | '3:4' | '9:16' | '21:9' | '9:21'> = {
-      'portrait': '9:16',
-      'landscape': '16:9',
-      'square': '1:1'
-    };
-
-    // Regenerate with Replicate service
-    const newParams = {
-      prompt: video.metadata.prompt || `Regenerate ${video.metadata.productName} video scene`,
-      duration: video.duration,
-      aspectRatio: orientationToAspectRatio[video.metadata.orientation] || '16:9',
-      resolution: video.metadata.resolution as '480p' | '720p' | '1080p',
-      model: (video.metadata.model || 'seedance-1-lite') as 'seedance-1-lite' | 'seedance-1-pro',
-    };
+    setCurrentPhase('Starting Kling video generation...');
+    setProgress(10);
 
     try {
-      const replicateResult = await replicateService.generateVideo(newParams);
+      console.log('🎬 Starting Kling transitions for', scenes.length, 'scenes');
 
-      // Wait for completion
-      const status = await replicateService.waitForCompletion(replicateResult.id);
+      const { httpsCallable } = await import('firebase/functions');
+      const { functions } = await import('@/lib/firebase/config');
+      const generateTransitions = httpsCallable(functions, 'generateKlingTransitions');
 
-      setVideos(prevVideos =>
-        prevVideos.map((v, i) =>
-          i === index
-            ? {
-                ...v,
-                id: replicateResult.id,
-                status: 'completed' as const,
-                progress: 100,
-                url: status.url || '',
-                thumbnail: status.thumbnail || `https://picsum.photos/seed/${replicateResult.id}/400/600`,
-              }
-            : v
-        )
-      );
-    } catch (error) {
-      console.error('Error regenerating video:', error);
-      setVideos(prevVideos =>
-        prevVideos.map((v, i) =>
-          i === index ? { ...v, status: 'failed' as const } : v
-        )
-      );
+      // Map storyboard images to scene format
+      const sceneData = scenes.map((img: any) => ({
+        id: img.id,
+        url: img.url,
+        prompt: img.prompt || '',
+        sceneNumber: img.sceneNumber,
+        description: img.description || '',
+        mood: img.mood || '',
+      }));
+
+      // Get duration and aspect ratio from campaign data
+      const duration = campaignData.duration || 5;
+      const orientation = campaignData.orientation || 'portrait';
+      const aspectRatio = orientation === 'landscape' ? '16:9' :
+                          orientation === 'square' ? '1:1' : '9:16';
+
+      const result = await generateTransitions({
+        campaignId,
+        scenes: sceneData,
+        duration,
+        aspectRatio,
+      });
+
+      const data = result.data as any;
+
+      if (!data.success) {
+        throw new Error(data.message || 'Failed to start video generation');
+      }
+
+      console.log('✅ Started generation of', data.totalVideos, 'transition videos');
+
+      // Initialize videos in state
+      const initialVideos = data.videos.map((v: any) => ({
+        videoId: v.videoId,
+        predictionId: v.predictionId,
+        transitionIndex: v.transitionIndex,
+        fromSceneNumber: v.fromSceneNumber,
+        toSceneNumber: v.toSceneNumber,
+        status: v.status,
+        progress: 0,
+      }));
+
+      setTransitionVideos(initialVideos);
+      setCurrentPhase(`Generating ${data.totalVideos} transition videos...`);
+      setProgress(20);
+
+      // Start polling
+      startPolling(data.videos.map((v: any) => v.videoId));
+
+    } catch (err) {
+      console.error('❌ Error starting generation:', err);
+      setError(err instanceof Error ? err.message : 'Failed to start generation');
+      setIsGenerating(false);
+      alert('Failed to start video generation. Please try again.');
     }
   };
 
-  const getTotalCost = () => {
-    return videos.reduce((sum, video) => sum + (video.metadata.cost || 0), 0).toFixed(2);
+  const startPolling = (videoIds: string[]) => {
+    let pollCount = 0;
+    const maxPolls = 240; // 20 minutes at 5 second intervals
+
+    const pollInterval = setInterval(async () => {
+      pollCount++;
+
+      try {
+        const { httpsCallable } = await import('firebase/functions');
+        const { functions } = await import('@/lib/firebase/config');
+        const checkStatus = httpsCallable(functions, 'checkKlingTransitionsStatus');
+
+        const result = await checkStatus({
+          campaignId,
+          videoIds,
+        });
+
+        const data = result.data as any;
+
+        if (!data.success) {
+          throw new Error('Failed to check status');
+        }
+
+        console.log(`📊 Poll ${pollCount}: ${data.completedCount}/${data.totalCount} complete`);
+
+        // Update videos with latest status
+        setTransitionVideos(prevVideos => {
+          return data.videos.map((v: any) => {
+            const prev = prevVideos.find((pv: any) => pv.videoId === v.videoId);
+            return {
+              videoId: v.videoId,
+              transitionIndex: v.transitionIndex,
+              fromSceneNumber: v.fromSceneNumber,
+              toSceneNumber: v.toSceneNumber,
+              status: v.status,
+              output: v.output,
+              error: v.error,
+              progress: v.status === 'succeeded' ? 100 :
+                       v.status === 'failed' ? 0 :
+                       Math.min(95, 20 + (pollCount * 2)),
+              thumbnail: prev?.thumbnail,
+            };
+          });
+        });
+
+        // Update overall progress
+        const overallProgress = 20 + ((data.completedCount / data.totalCount) * 75);
+        setProgress(Math.min(95, overallProgress));
+
+        // Check if all complete
+        if (data.allComplete) {
+          console.log('✅ All videos completed!');
+          clearInterval(pollInterval);
+          setIsGenerating(false);
+          setCurrentPhase('All videos completed!');
+          setProgress(100);
+
+          // Upload videos to S3
+          uploadVideosToS3(data.videos.filter((v: any) => v.status === 'succeeded'));
+        }
+
+        // Check if any failed
+        if (data.anyFailed) {
+          const failedVideos = data.videos.filter((v: any) => v.status === 'failed');
+          console.error('❌ Some videos failed:', failedVideos);
+          setCurrentPhase(`${data.completedCount}/${data.totalCount} completed (${failedVideos.length} failed)`);
+        }
+
+      } catch (err) {
+        console.error('❌ Error polling status:', err);
+      }
+
+      // Timeout after max polls
+      if (pollCount >= maxPolls) {
+        console.warn('⚠️ Polling timeout reached');
+        clearInterval(pollInterval);
+        setIsGenerating(false);
+        setCurrentPhase('Generation timed out. Please refresh to check status.');
+      }
+    }, 5000); // Poll every 5 seconds
   };
 
+  const uploadVideosToS3 = async (videos: any[]) => {
+    try {
+      console.log('📤 Uploading', videos.length, 'videos to S3...');
+      const { httpsCallable } = await import('firebase/functions');
+      const { functions } = await import('@/lib/firebase/config');
+      const uploadVideoFn = httpsCallable(functions, 'uploadVideoToS3');
+
+      for (const video of videos) {
+        if (!video.output) continue;
+
+        try {
+          const result = await uploadVideoFn({
+            videoUrl: video.output,
+            campaignId,
+            videoId: video.videoId,
+            thumbnailUrl: video.output, // Use video URL as thumbnail for now
+          });
+
+          const data = result.data as any;
+          if (data.success) {
+            console.log(`✅ Uploaded video ${video.transitionIndex + 1} to S3`);
+
+            // Update video with S3 URL
+            setTransitionVideos(prev =>
+              prev.map(v =>
+                v.videoId === video.videoId
+                  ? { ...v, output: data.videoUrl, thumbnail: data.thumbnailUrl }
+                  : v
+              )
+            );
+          }
+        } catch (uploadError) {
+          console.warn(`⚠️ Failed to upload video ${video.videoId} to S3:`, uploadError);
+          // Continue with Replicate URL
+        }
+      }
+
+      console.log('✅ S3 upload complete');
+    } catch (err) {
+      console.error('❌ Error uploading to S3:', err);
+    }
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'succeeded':
+        return 'bg-green-100 text-green-800';
+      case 'processing':
+      case 'starting':
+        return 'bg-blue-100 text-blue-800';
+      case 'failed':
+        return 'bg-red-100 text-red-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case 'succeeded':
+        return 'Complete';
+      case 'processing':
+        return 'Generating';
+      case 'starting':
+        return 'Starting';
+      case 'failed':
+        return 'Failed';
+      default:
+        return status;
+    }
+  };
+
+  // Sort videos by transition index for display
+  const sortedVideos = [...transitionVideos].sort((a, b) => a.transitionIndex - b.transitionIndex);
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+    <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <nav className="bg-white shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16">
             <div className="flex items-center">
-              <h1 className="text-xl font-semibold text-gray-900">Replicate Video Generation</h1>
+              <h1 className="text-xl font-semibold text-gray-900">Video Generation</h1>
             </div>
             <div className="flex items-center space-x-4">
               <Link
-                href="/dashboard"
+                href="/dashboard/campaigns"
                 className="text-sm text-gray-500 hover:text-gray-700"
               >
-                Back to Dashboard
+                Dashboard
               </Link>
             </div>
           </div>
@@ -549,275 +382,152 @@ export default function GenerateResultsPage() {
       </nav>
 
       <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-        {/* Preview Selected Images (before generation starts) */}
-        {!isGenerating && isReady && selectedImages.length > 0 && (
-          <div className="mb-6 px-4">
-            <div className="bg-white rounded-lg shadow-xl p-6">
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">
-                Review Your Selected Scenes
+        <div className="px-4">
+          {/* Campaign Info */}
+          {campaignData && (
+            <div className="mb-6 bg-white rounded-lg shadow-md p-6">
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                {campaignData.productName || 'Campaign'}
               </h2>
-              <p className="text-gray-600 mb-6">
-                You've selected {selectedImages.length} scene{selectedImages.length !== 1 ? 's' : ''} to create your {generationData?.duration || 7}-second video.
-                Click "Start Video Generation" when you're ready.
-              </p>
+              <div className="flex items-center space-x-4 text-sm text-gray-600">
+                <span>🎬 {campaignData.storyboardImages?.length || 0} scenes</span>
+                <span>→</span>
+                <span>🎥 {(campaignData.storyboardImages?.length || 1) - 1} transitions</span>
+                <span>→</span>
+                <span>⏱️ {(campaignData.duration || 5) * ((campaignData.storyboardImages?.length || 1) - 1)}s total</span>
+              </div>
+            </div>
+          )}
 
-              {/* Selected Images Preview */}
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
-                {selectedImages.map((image, index) => (
-                  <div key={image.id} className="relative rounded-lg overflow-hidden border-2 border-purple-500">
-                    <div className="aspect-[9/16] relative bg-gray-100">
-                      <img
-                        src={image.url}
-                        alt={`Scene ${index + 1}`}
-                        className="w-full h-full object-cover"
-                      />
-                      <div className="absolute top-2 left-2 bg-purple-600 text-white px-2 py-1 rounded text-xs font-bold">
-                        Scene {index + 1}
+          {/* Error Display */}
+          {error && (
+            <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
+              <p className="text-red-800">{error}</p>
+            </div>
+          )}
+
+          {/* Generate Button */}
+          {campaignData && transitionVideos.length === 0 && !isGenerating && (
+            <div className="mb-6 bg-white rounded-lg shadow-md p-8 text-center">
+              <h3 className="text-xl font-bold text-gray-900 mb-4">
+                Ready to Generate Videos
+              </h3>
+              <p className="text-gray-600 mb-6">
+                Create {(campaignData.storyboardImages?.length || 1) - 1} smooth transitions between your {campaignData.storyboardImages?.length} scenes
+              </p>
+              <button
+                onClick={startGeneration}
+                className="px-8 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-semibold"
+              >
+                Generate Transition Videos
+              </button>
+              <p className="text-sm text-gray-500 mt-4">
+                Estimated time: {Math.ceil(((campaignData.storyboardImages?.length || 1) - 1) * 1.5)} - {Math.ceil(((campaignData.storyboardImages?.length || 1) - 1) * 3)} minutes
+              </p>
+            </div>
+          )}
+
+          {/* Progress Bar */}
+          {isGenerating && (
+            <div className="mb-6 bg-white rounded-lg shadow-md p-6">
+              <div className="mb-4">
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-sm font-medium text-gray-700">{currentPhase}</span>
+                  <span className="text-sm font-medium text-gray-700">{Math.round(progress)}%</span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-4">
+                  <div
+                    className="bg-purple-600 h-4 rounded-full transition-all duration-500"
+                    style={{ width: `${progress}%` }}
+                  />
+                </div>
+              </div>
+              <p className="text-sm text-gray-600">
+                This may take several minutes. You can close this page and return later - your progress is saved.
+              </p>
+            </div>
+          )}
+
+          {/* Videos Grid */}
+          {sortedVideos.length > 0 && (
+            <div className="space-y-4">
+              <h3 className="text-xl font-bold text-gray-900">Transition Videos</h3>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {sortedVideos.map((video) => (
+                  <div
+                    key={video.videoId}
+                    className="bg-white rounded-lg shadow-md overflow-hidden"
+                  >
+                    {/* Video Preview */}
+                    <div className="aspect-[9/16] bg-gray-100 relative">
+                      {video.output && video.status === 'succeeded' ? (
+                        <video
+                          src={video.output}
+                          controls
+                          className="w-full h-full object-cover"
+                          poster={video.thumbnail}
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          {video.status === 'failed' ? (
+                            <div className="text-red-500 text-center p-4">
+                              <div className="text-4xl mb-2">⚠️</div>
+                              <p className="text-sm">Generation Failed</p>
+                            </div>
+                          ) : (
+                            <div className="text-center">
+                              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
+                              <p className="text-sm text-gray-600">Generating...</p>
+                              <p className="text-xs text-gray-500 mt-1">{video.progress}%</p>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Video Info */}
+                    <div className="p-4">
+                      <div className="flex items-center justify-between mb-2">
+                        <h4 className="font-semibold text-gray-900">
+                          Scene {video.fromSceneNumber} → {video.toSceneNumber}
+                        </h4>
+                        <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(video.status)}`}>
+                          {getStatusLabel(video.status)}
+                        </span>
                       </div>
+
+                      <p className="text-sm text-gray-600 mb-3">
+                        Transition {video.transitionIndex + 1}
+                      </p>
+
+                      {/* Actions */}
+                      {video.status === 'succeeded' && video.output && (
+                        <div className="flex space-x-2">
+                          <a
+                            href={video.output}
+                            download
+                            className="flex-1 px-3 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 text-sm text-center"
+                          >
+                            Download
+                          </a>
+                        </div>
+                      )}
                     </div>
                   </div>
                 ))}
               </div>
-
-              {/* Campaign Info */}
-              <div className="bg-gray-50 rounded-lg p-4 mb-6">
-                <h3 className="font-semibold text-gray-900 mb-2">Campaign Settings</h3>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                  <div>
-                    <p className="text-gray-500">Product</p>
-                    <p className="font-semibold">{generationData?.productName}</p>
-                  </div>
-                  <div>
-                    <p className="text-gray-500">Brand Tone</p>
-                    <p className="font-semibold capitalize">{generationData?.brandTone}</p>
-                  </div>
-                  <div>
-                    <p className="text-gray-500">Duration</p>
-                    <p className="font-semibold">{generationData?.duration}s</p>
-                  </div>
-                  <div>
-                    <p className="text-gray-500">Orientation</p>
-                    <p className="font-semibold capitalize">{generationData?.orientation}</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex gap-4">
-                <button
-                  onClick={() => {
-                    const campaignId = new URLSearchParams(window.location.search).get('campaignId');
-                    router.push(`/generate/review/?campaignId=${campaignId}`);
-                  }}
-                  className="px-6 py-3 border-2 border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-                >
-                  ← Back to Scene Review
-                </button>
-                <button
-                  onClick={startGeneration}
-                  className="flex-1 bg-gradient-to-r from-purple-600 to-blue-600 text-white py-4 px-8 rounded-lg font-semibold text-lg hover:opacity-90 transition-opacity shadow-lg"
-                >
-                  Start Video Generation →
-                </button>
-              </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Status Banner */}
-        {isGenerating && (
-          <div className="mb-6 px-4">
-            <div className="bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg p-6 text-white">
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <h2 className="text-2xl font-bold mb-2">🎬 Generating with Replicate</h2>
-                  <p className="text-lg opacity-90">{generationPhase}</p>
-                </div>
-                <div className="text-right">
-                  <div className="text-3xl font-bold">{currentProgress}%</div>
-                  <div className="text-sm opacity-75">Complete</div>
-                </div>
-              </div>
-              <div className="w-full bg-white/20 rounded-full h-4">
-                <div
-                  className="bg-white h-4 rounded-full transition-all duration-500 flex items-center justify-end pr-2"
-                  style={{ width: `${currentProgress}%` }}
-                >
-                  {currentProgress > 10 && (
-                    <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse" />
-                  )}
-                </div>
-              </div>
-              <div className="mt-4 grid grid-cols-3 gap-4 text-sm">
-                <div className="bg-white/10 rounded p-2">
-                  <div className="opacity-75">Model</div>
-                  <div className="font-semibold">Seedance</div>
-                </div>
-                <div className="bg-white/10 rounded p-2">
-                  <div className="opacity-75">Est. Time</div>
-                  <div className="font-semibold">~10 seconds</div>
-                </div>
-                <div className="bg-white/10 rounded p-2">
-                  <div className="opacity-75">Quality</div>
-                  <div className="font-semibold">1080p HD</div>
-                </div>
-              </div>
+          {/* Empty State */}
+          {!campaignData && !error && (
+            <div className="bg-white rounded-lg shadow-md p-12 text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
+              <p className="text-gray-600">Loading campaign...</p>
             </div>
-          </div>
-        )}
-
-        {/* Video Grid */}
-        <div className="px-4">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">
-            Generated {generationData?.productName || 'Campaign'} Videos ({videos.length})
-          </h2>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {videos.map((video, index) => (
-              <div
-                key={video.id}
-                className="bg-white rounded-lg shadow-md overflow-hidden"
-              >
-                {/* Video Preview */}
-                <div className="aspect-[9/16] relative bg-gray-100">
-                  {video.status === 'completed' ? (
-                    <>
-                      <video
-                        src={video.url}
-                        poster={video.thumbnail}
-                        controls
-                        className="w-full h-full object-cover"
-                      >
-                        Your browser does not support the video tag.
-                      </video>
-                      <div className="absolute top-2 right-2 bg-green-500 text-white px-2 py-1 rounded text-xs flex items-center gap-1">
-                        <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                        </svg>
-                        Replicate AI
-                      </div>
-                    </>
-                  ) : (
-                    <div className="flex items-center justify-center h-full">
-                      <div className="text-center">
-                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-                        <p className="mt-2 text-sm text-gray-600">Generating with Replicate...</p>
-                        <p className="text-xs text-gray-500">{video.progress}%</p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Video Info */}
-                <div className="p-4">
-                  <h3 className="font-semibold text-gray-900">
-                    Scene {index + 1}: {index === 0 ? 'Opening' : index === 1 ? 'Action' : 'Finale'}
-                  </h3>
-                  <div className="mt-2 space-y-1 text-sm text-gray-600">
-                    <p className="line-clamp-2 text-xs">{video.metadata.prompt}</p>
-                    <div className="flex items-center gap-2 mt-2">
-                      <span className="bg-gray-100 px-2 py-1 rounded text-xs">{video.metadata.model}</span>
-                      <span className="bg-gray-100 px-2 py-1 rounded text-xs">{video.metadata.resolution}</span>
-                      <span className="bg-gray-100 px-2 py-1 rounded text-xs">{video.duration}s</span>
-                    </div>
-                    {video.metadata.cost && (
-                      <p className="text-green-600 font-semibold">${video.metadata.cost}</p>
-                    )}
-                  </div>
-
-                  {/* Actions */}
-                  <div className="mt-4 flex flex-col space-y-2">
-                    {video.status === 'completed' && (
-                      <>
-                        <div className="flex space-x-2">
-                          <button
-                            onClick={() => handleDownload(video)}
-                            className="flex-1 bg-blue-600 text-white px-3 py-2 rounded-md text-sm hover:bg-blue-700"
-                          >
-                            Download
-                          </button>
-                          <button
-                            onClick={() => handleRegenerateVideo(index)}
-                            className="flex-1 bg-gray-100 text-gray-700 px-3 py-2 rounded-md text-sm hover:bg-gray-200"
-                          >
-                            Regenerate
-                          </button>
-                        </div>
-                        <button
-                          onClick={() => {
-                            const campaignId = new URLSearchParams(window.location.search).get('campaignId') || '';
-                            router.push(`/generate/voiceover?videoId=${video.id}&campaignId=${campaignId}`);
-                          }}
-                          className="w-full bg-green-600 text-white px-3 py-2 rounded-md text-sm hover:bg-green-700 flex items-center justify-center gap-2"
-                        >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-                          </svg>
-                          Add Voiceover
-                        </button>
-                      </>
-                    )}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
+          )}
         </div>
-
-        {/* Generation Summary */}
-        {!isGenerating && videos.length > 0 && (
-          <div className="mt-8 px-4">
-            <div className="bg-white rounded-lg shadow-md p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                Video Generation Complete ✨
-              </h3>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                <div>
-                  <p className="text-gray-500">Total Videos</p>
-                  <p className="font-semibold text-lg">{videos.length}</p>
-                </div>
-                <div>
-                  <p className="text-gray-500">Generation Time</p>
-                  <p className="font-semibold text-lg">10 seconds</p>
-                </div>
-                <div>
-                  <p className="text-gray-500">Total Cost</p>
-                  <p className="font-semibold text-lg text-green-600">${getTotalCost()}</p>
-                </div>
-                <div>
-                  <p className="text-gray-500">Quality</p>
-                  <p className="font-semibold text-lg">1080p HD</p>
-                </div>
-              </div>
-
-              <div className="mt-6 p-4 bg-blue-50 rounded-lg">
-                <h4 className="font-semibold text-blue-900 mb-2">
-                  🎯 {generationData?.productName || 'Campaign'} Ready
-                </h4>
-                <p className="text-sm text-blue-700">
-                  Your {generationData?.brandTone || 'professional'} {generationData?.productName || 'campaign'} videos have been generated using Replicate's Seedance model.
-                  Each scene was crafted according to your specifications with high-quality output,
-                  professional editing, and dynamic presentation as requested.
-                </p>
-              </div>
-
-              <div className="mt-6 flex space-x-4">
-                <button
-                  onClick={() => router.push('/generate?new=true')}
-                  className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
-                >
-                  Generate New Campaign
-                </button>
-                <button
-                  onClick={() => router.push('/dashboard')}
-                  className="bg-gray-100 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-200"
-                >
-                  Back to Dashboard
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
       </main>
     </div>
   );

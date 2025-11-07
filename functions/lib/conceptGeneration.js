@@ -106,7 +106,7 @@ Brand Tone: {brandTone}
 Target Audience: {targetAudience}
 Keywords: {keywords}
 Video Duration: {duration} seconds
-${creativeDirection ? '\nUSER\'S CREATIVE DIRECTION:\n"{creativeDirection}"\n' : ''}
+${creativeDirection ? `\nUSER'S CREATIVE DIRECTION:\n"${creativeDirection}"\n` : ''}
 
 REQUIREMENTS:
 1. Generate 3 DISTINCT creative concepts (Director's Treatment)

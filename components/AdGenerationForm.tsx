@@ -16,7 +16,6 @@ interface AdGenerationFormProps {
   form: UseFormReturn<AdGenerationFormData>;
   onSubmit: (data: AdGenerationFormData) => void;
   isSubmitting: boolean;
-  campaignId?: string;
   onStepChange?: (step: number, formData: AdGenerationFormData) => void;
 }
 
@@ -34,7 +33,6 @@ export default function AdGenerationForm({
   form,
   onSubmit,
   isSubmitting,
-  campaignId: _campaignId,
   onStepChange,
 }: AdGenerationFormProps) {
   const [currentStep, setCurrentStep] = useState(1);

@@ -302,11 +302,11 @@ function createTransitionPrompt(currentScene: any, nextScene: any): string {
 async function getKlingVersion(replicate: Replicate): Promise<string> {
   // Hardcoded version ID for Kling 2.5 Turbo Pro
   // Updated: 2025-01-07
-  const KLING_VERSION = '3dfbfa14d6e4f83e75c7c0e1bfa8d7c5d32e1c6e12c5c9e8b7a6f5e4d3c2b1a0';
+  const KLING_VERSION = '939cd1851c5b112f284681b57ee9b0f36d0f913ba97de5845a7eef92d52837df';
 
   // Try to get from API if hardcoded version fails
   try {
-    console.log('✅ Using Kling 2.5 Turbo Pro version');
+    console.log('✅ Using Kling 2.5 Turbo Pro version:', KLING_VERSION);
     return KLING_VERSION;
   } catch (error) {
     console.warn('⚠️ Hardcoded version might be outdated, fetching from API...');
