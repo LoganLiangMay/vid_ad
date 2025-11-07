@@ -1,23 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import { initializeApp, getApps } from 'firebase-admin/app';
+import { initializeApp, getApps, applicationDefault } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
 
-// Initialize Firebase Admin with singleton pattern
-// This must be done in the API route itself for Firebase Cloud Functions
+// Initialize Firebase Admin with singleton pattern for Cloud Functions
+// According to Firebase Admin docs, we should use applicationDefault() in Cloud Functions
 function getAdminAuth() {
   console.log('🔧 [Admin] Checking if admin app exists...');
 
   if (getApps().length === 0) {
-    console.log('🔧 [Admin] No admin app found, initializing...');
+    console.log('🔧 [Admin] No admin app found, initializing with applicationDefault()...');
 
-    // In Firebase Cloud Functions, we can initialize without any credentials
-    // Firebase will automatically use the default service account
     try {
+      // Use applicationDefault() which works automatically in Cloud Functions, Cloud Run, etc.
       const app = initializeApp({
-        projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'vid-ad',
+        credential: applicationDefault(),
       });
-      console.log('✅ [Admin] Firebase Admin initialized successfully with project:', app.options.projectId);
+      console.log('✅ [Admin] Firebase Admin initialized successfully');
     } catch (error: any) {
       console.error('❌ [Admin] Failed to initialize Firebase Admin:', error.message);
       throw error;
