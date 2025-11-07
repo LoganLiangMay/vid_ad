@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { adminAuth } from '@/lib/firebase/admin';
+import { getAdminAuth } from '@/lib/firebase/admin';
 import { getUserCampaigns, getCampaignsByStatus } from '@/lib/firebase/campaigns';
 import { cookies } from 'next/headers';
 
@@ -13,6 +13,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const adminAuth = getAdminAuth();
     const decodedToken = await adminAuth.verifySessionCookie(sessionCookie);
     const userId = decodedToken.uid;
 

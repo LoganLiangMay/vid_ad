@@ -1,27 +1,58 @@
 import { initializeApp, getApps, applicationDefault } from 'firebase-admin/app';
-import { getAuth } from 'firebase-admin/auth';
-import { getFirestore } from 'firebase-admin/firestore';
-import { getStorage } from 'firebase-admin/storage';
+import { getAuth, Auth } from 'firebase-admin/auth';
+import { getFirestore, Firestore } from 'firebase-admin/firestore';
+import { getStorage, Storage } from 'firebase-admin/storage';
 
 // Initialize admin app with applicationDefault() for Cloud Functions
 // According to Firebase Admin SDK docs, this is the correct method for Cloud Run/Cloud Functions
-if (!getApps().length) {
-  console.log('🔧 [Admin] Initializing with applicationDefault() for Cloud Functions');
-  try {
-    initializeApp({
-      credential: applicationDefault(),
-    });
-    console.log('✅ [Admin] Firebase Admin initialized successfully');
-  } catch (error: any) {
-    console.error('❌ [Admin] Failed to initialize Firebase Admin:', error.message);
-    throw error;
+function initAdmin() {
+  if (getApps().length === 0) {
+    console.log('🔧 [Admin] Initializing with applicationDefault() for Cloud Functions');
+    try {
+      initializeApp({
+        credential: applicationDefault(),
+      });
+      console.log('✅ [Admin] Firebase Admin initialized successfully');
+    } catch (error: any) {
+      console.error('❌ [Admin] Failed to initialize Firebase Admin:', error.message);
+      throw error;
+    }
   }
 }
 
-// Export admin services
-export const adminAuth = getAuth();
-export const adminDb = getFirestore();
-export const adminStorage = getStorage();
+// Lazy getters - only initialize when accessed
+let _adminAuth: Auth | null = null;
+let _adminDb: Firestore | null = null;
+let _adminStorage: Storage | null = null;
+
+export function getAdminAuth(): Auth {
+  if (!_adminAuth) {
+    initAdmin();
+    _adminAuth = getAuth();
+  }
+  return _adminAuth;
+}
+
+export function getAdminDb(): Firestore {
+  if (!_adminDb) {
+    initAdmin();
+    _adminDb = getFirestore();
+  }
+  return _adminDb;
+}
+
+export function getAdminStorage(): Storage {
+  if (!_adminStorage) {
+    initAdmin();
+    _adminStorage = getStorage();
+  }
+  return _adminStorage;
+}
+
+// Deprecated: Use getter functions instead
+// export const adminAuth = getAdminAuth();
+// export const adminDb = getAdminDb();
+// export const adminStorage = getAdminStorage();
 
 // Helper functions for common admin operations
 export async function verifyIdToken(token: string) {

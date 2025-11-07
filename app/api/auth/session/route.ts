@@ -1,32 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import { initializeApp, getApps, applicationDefault } from 'firebase-admin/app';
-import { getAuth } from 'firebase-admin/auth';
-
-// Initialize Firebase Admin with singleton pattern for Cloud Functions
-// According to Firebase Admin docs, we should use applicationDefault() in Cloud Functions
-function getAdminAuth() {
-  console.log('🔧 [Admin] Checking if admin app exists...');
-
-  if (getApps().length === 0) {
-    console.log('🔧 [Admin] No admin app found, initializing with applicationDefault()...');
-
-    try {
-      // Use applicationDefault() which works automatically in Cloud Functions, Cloud Run, etc.
-      initializeApp({
-        credential: applicationDefault(),
-      });
-      console.log('✅ [Admin] Firebase Admin initialized successfully');
-    } catch (error: any) {
-      console.error('❌ [Admin] Failed to initialize Firebase Admin:', error.message);
-      throw error;
-    }
-  } else {
-    console.log('✅ [Admin] Admin app already exists');
-  }
-
-  return getAuth();
-}
+import { getAdminAuth } from '@/lib/firebase/admin';
 
 export async function POST(request: NextRequest) {
   try {

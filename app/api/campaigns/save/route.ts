@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { adminAuth } from '@/lib/firebase/admin';
+import { getAdminAuth } from '@/lib/firebase/admin';
 import { createCampaign, addSceneImages, addVideoToCampaign } from '@/lib/firebase/campaigns';
 import { uploadImageToS3, uploadVideoToS3 } from '@/lib/aws/s3';
 import type { CampaignInput } from '@/lib/types/campaign';
@@ -15,6 +15,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const adminAuth = getAdminAuth();
     const decodedToken = await adminAuth.verifySessionCookie(sessionCookie);
     const userId = decodedToken.uid;
 
