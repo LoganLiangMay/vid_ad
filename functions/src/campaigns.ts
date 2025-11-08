@@ -177,39 +177,40 @@ export const getCampaign = functions.https.onCall(async (data, context) => {
 /**
  * Get all campaigns for the current user
  */
-export const getUserCampaigns = functions.https.onCall(async (_data, context) => {
-  if (!context.auth) {
-    throw new functions.https.HttpsError(
-      'unauthenticated',
-      'User must be authenticated'
-    );
-  }
+export const getUserCampaigns = functions
+  .https.onCall(async (_data, context) => {
+    if (!context.auth) {
+      throw new functions.https.HttpsError(
+        'unauthenticated',
+        'User must be authenticated'
+      );
+    }
 
-  try {
-    const userId = context.auth.uid;
-    const campaignsRef = db.collection('campaigns')
-      .where('userId', '==', userId)
-      .orderBy('createdAt', 'desc')
-      .limit(50);
+    try {
+      const userId = context.auth.uid;
+      const campaignsRef = db.collection('campaigns')
+        .where('userId', '==', userId)
+        .orderBy('createdAt', 'desc')
+        .limit(50);
 
-    const snapshot = await campaignsRef.get();
-    const campaigns = snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data(),
-    }));
+      const snapshot = await campaignsRef.get();
+      const campaigns = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
 
-    return {
-      success: true,
-      campaigns,
-    };
-  } catch (error: any) {
-    console.error('Error getting user campaigns:', error);
-    throw new functions.https.HttpsError(
-      'internal',
-      `Failed to get campaigns: ${error.message}`
-    );
-  }
-});
+      return {
+        success: true,
+        campaigns,
+      };
+    } catch (error: any) {
+      console.error('Error getting user campaigns:', error);
+      throw new functions.https.HttpsError(
+        'internal',
+        `Failed to get campaigns: ${error.message}`
+      );
+    }
+  });
 
 /**
  * Delete a campaign

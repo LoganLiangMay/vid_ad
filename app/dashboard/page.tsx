@@ -145,7 +145,10 @@ export default function DashboardPage() {
         <div className="mb-12">
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {/* Campaigns Card */}
-            <div className="bg-white border border-gray-200 rounded-xl p-6 hover:shadow-lg transition-shadow">
+            <div
+              onClick={() => router.push('/dashboard/campaigns')}
+              className="bg-white border border-gray-200 rounded-xl p-6 hover:shadow-lg transition-shadow cursor-pointer"
+            >
               <dt className="text-sm font-semibold text-[#5b6068] uppercase tracking-wide mb-3">
                 My Campaigns
               </dt>
@@ -154,13 +157,19 @@ export default function DashboardPage() {
               </dd>
               <div className="flex flex-col space-y-2">
                 <button
-                  onClick={() => router.push('/dashboard/campaigns')}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    router.push('/dashboard/campaigns');
+                  }}
                   className="text-sm font-semibold text-[#41b6e6] hover:text-[#3aa5d5] transition-colors text-left"
                 >
                   View All →
                 </button>
                 <button
-                  onClick={() => router.push('/generate?new=true')}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    router.push('/generate?new=true');
+                  }}
                   className="text-sm font-semibold text-[#41b6e6] hover:text-[#3aa5d5] transition-colors text-left"
                 >
                   Create New →

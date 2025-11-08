@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import ProfileDropdown from './ProfileDropdown';
 
 interface HeaderProps {
   user?: {
@@ -10,11 +11,11 @@ interface HeaderProps {
 
 export default function Header({ user, onLogout, showAuth = true }: HeaderProps) {
   return (
-    <header className="bg-white border-b border-gray-200">
+    <header className="bg-white border-b border-gray-200 sticky top-0 z-40">
       <div className="max-w-[1120px] mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <Link href="/" className="flex items-center">
+          <Link href={user ? "/dashboard" : "/"} className="flex items-center">
             <div className="flex items-center space-x-1">
               <svg className="w-8 h-8" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M8 32L20 8L32 32H8Z" fill="#41b6e6"/>
@@ -27,16 +28,8 @@ export default function Header({ user, onLogout, showAuth = true }: HeaderProps)
           {/* Navigation */}
           {showAuth && (
             <div className="flex items-center space-x-6">
-              {user ? (
-                <>
-                  <span className="text-sm text-[#5b6068]">{user.email}</span>
-                  <button
-                    onClick={onLogout}
-                    className="text-sm font-medium text-[#111827] hover:text-[#41b6e6] transition-colors"
-                  >
-                    Logout
-                  </button>
-                </>
+              {user && onLogout ? (
+                <ProfileDropdown userEmail={user.email} onLogout={onLogout} />
               ) : (
                 <>
                   <Link
