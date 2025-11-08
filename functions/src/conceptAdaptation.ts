@@ -273,9 +273,11 @@ function simpleAdaptScenes(
         adaptedScenes.length < targetSceneCount
       ) {
         const nextScene = currentScenes[index + 1];
-        adaptedScenes.push(
-          `Transition: Bridge between ${scene.split(':')[0]} and ${nextScene.split(':')[0]}`
-        );
+        if (nextScene) {
+          adaptedScenes.push(
+            `Transition: Bridge between ${scene.split(':')[0]} and ${nextScene.split(':')[0]}`
+          );
+        }
       }
     });
 
@@ -288,7 +290,10 @@ function simpleAdaptScenes(
 
     for (let i = 0; i < targetSceneCount; i++) {
       const index = Math.floor(i * step);
-      adaptedScenes.push(currentScenes[index]);
+      const scene = currentScenes[index];
+      if (scene) {
+        adaptedScenes.push(scene);
+      }
     }
 
     return adaptedScenes;

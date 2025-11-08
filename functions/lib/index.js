@@ -51,6 +51,7 @@ __exportStar(require("./campaigns"), exports);
 __exportStar(require("./s3Upload"), exports);
 __exportStar(require("./sceneGeneration"), exports);
 __exportStar(require("./conceptGeneration"), exports);
+__exportStar(require("./conceptAdaptation"), exports);
 __exportStar(require("./klingVideo"), exports);
 __exportStar(require("./veoVideo"), exports);
 __exportStar(require("./backgroundRemoval"), exports);

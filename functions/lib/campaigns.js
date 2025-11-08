@@ -33,7 +33,7 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.deleteCampaign = exports.getUserCampaigns = exports.getCampaign = exports.updateCampaign = exports.saveCampaign = void 0;
+exports.getTemplateCampaigns = exports.deleteCampaign = exports.getUserCampaigns = exports.getCampaign = exports.updateCampaign = exports.saveCampaign = void 0;
 const functions = __importStar(require("firebase-functions/v1"));
 const admin = __importStar(require("firebase-admin"));
 const db = admin.firestore();
@@ -146,7 +146,8 @@ exports.getCampaign = functions.https.onCall(async (data, context) => {
 /**
  * Get all campaigns for the current user
  */
-exports.getUserCampaigns = functions.https.onCall(async (_data, context) => {
+exports.getUserCampaigns = functions
+    .https.onCall(async (_data, context) => {
     if (!context.auth) {
         throw new functions.https.HttpsError('unauthenticated', 'User must be authenticated');
     }
@@ -202,6 +203,52 @@ exports.deleteCampaign = functions.https.onCall(async (data, context) => {
     catch (error) {
         console.error('Error deleting campaign:', error);
         throw new functions.https.HttpsError('internal', `Failed to delete campaign: ${error.message}`);
+    }
+});
+/**
+ * Get public template campaigns
+ * Returns campaigns marked as templates for all users to view
+ */
+exports.getTemplateCampaigns = functions.https.onCall(async (_data, _context) => {
+    // No authentication required - templates are public
+    try {
+        const templatesRef = db.collection('campaigns')
+            .where('isTemplate', '==', true)
+            .where('status', '==', 'completed') // Only show completed templates
+            .orderBy('createdAt', 'desc')
+            .limit(20); // Show up to 20 templates
+        const snapshot = await templatesRef.get();
+        const templates = snapshot.docs.map(doc => {
+            const data = doc.data();
+            // Return template data without sensitive information
+            return {
+                id: doc.id,
+                productName: data.productName,
+                productDescription: data.productDescription,
+                keywords: data.keywords,
+                brandTone: data.brandTone,
+                primaryColor: data.primaryColor,
+                targetAudience: data.targetAudience,
+                callToAction: data.callToAction,
+                orientation: data.orientation,
+                duration: data.duration,
+                status: data.status,
+                createdAt: data.createdAt,
+                userEmail: data.userEmail || 'Anonymous', // Show creator (optional)
+                isTemplate: true,
+                // Include other non-sensitive campaign data as needed
+                selectedConcept: data.selectedConcept,
+                storyboardImages: data.storyboardImages,
+            };
+        });
+        return {
+            success: true,
+            templates,
+        };
+    }
+    catch (error) {
+        console.error('Error getting template campaigns:', error);
+        throw new functions.https.HttpsError('internal', `Failed to get templates: ${error.message}`);
     }
 });
 //# sourceMappingURL=campaigns.js.map

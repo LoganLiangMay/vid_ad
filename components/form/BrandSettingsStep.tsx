@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { UseFormReturn } from 'react-hook-form';
 import { AdGenerationFormData, BrandTone } from '@/lib/schemas/adGenerationSchema';
 
@@ -26,6 +27,42 @@ export default function BrandSettingsStep({ form }: BrandSettingsStepProps) {
 
   const selectedTone = watch('brandTone');
   const primaryColor = watch('primaryColor');
+  const productName = watch('productName');
+  const productDescription = watch('productDescription');
+
+  const [isGeneratingLogo, setIsGeneratingLogo] = useState(false);
+  const [generatedLogoUrl, _setGeneratedLogoUrl] = useState<string | null>(null);
+  const [logoError, setLogoError] = useState<string | null>(null);
+
+  const handleGenerateLogo = async () => {
+    setIsGeneratingLogo(true);
+    setLogoError(null);
+
+    try {
+      // Create a prompt for logo generation based on form data
+      const logoPrompt = `Create a professional logo for "${productName}". ${productDescription}. Brand tone: ${selectedTone}. Primary color: ${primaryColor}. Style: modern, clean, simple, suitable for a brand logo.`;
+
+      // TODO: Integrate with actual AI logo generation service (e.g., DALL-E, Midjourney, or "nano banana")
+      // For now, we'll simulate the API call
+      console.log('Generating logo with prompt:', logoPrompt);
+
+      // Simulated API call - replace with actual AI service
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
+      // Placeholder: In production, this would be the URL returned from the AI service
+      // Example: const response = await fetch('/api/generate-logo', { method: 'POST', body: JSON.stringify({ prompt: logoPrompt }) });
+      // const data = await response.json();
+      // setGeneratedLogoUrl(data.imageUrl);
+
+      // For now, show a message that the feature is coming soon
+      setLogoError('AI Logo Generation coming soon! This will generate a logo based on your product info and brand settings.');
+    } catch (error) {
+      console.error('Error generating logo:', error);
+      setLogoError('Failed to generate logo. Please try again or upload your own logo.');
+    } finally {
+      setIsGeneratingLogo(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -122,6 +159,70 @@ export default function BrandSettingsStep({ form }: BrandSettingsStepProps) {
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Logo Upload (Optional)
           </label>
+
+          {/* AI Logo Generation Button */}
+          <div className="mb-4">
+            <button
+              type="button"
+              onClick={handleGenerateLogo}
+              disabled={isGeneratingLogo || !productName || !selectedTone}
+              className="w-full inline-flex items-center justify-center px-4 py-3 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-gradient-to-r from-[#41b6e6] to-[#3aa5d5] hover:from-[#3aa5d5] hover:to-[#2994c4] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#41b6e6] disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+            >
+              {isGeneratingLogo ? (
+                <>
+                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Generating Logo...
+                </>
+              ) : (
+                <>
+                  <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                  </svg>
+                  Generate Logo with AI
+                </>
+              )}
+            </button>
+            {!productName || !selectedTone ? (
+              <p className="mt-2 text-xs text-[#5b6068] text-center">
+                Please fill in Product Info and select a Brand Tone first
+              </p>
+            ) : null}
+          </div>
+
+          {/* Generated Logo Preview */}
+          {generatedLogoUrl && (
+            <div className="mb-4 p-4 border-2 border-[#41b6e6] rounded-lg bg-blue-50">
+              <p className="text-sm font-medium text-[#111827] mb-2">Generated Logo</p>
+              <img src={generatedLogoUrl} alt="Generated logo" className="max-h-32 mx-auto" />
+              <div className="mt-3 flex justify-center space-x-2">
+                <button
+                  type="button"
+                  className="px-3 py-1 text-xs font-medium text-[#41b6e6] border border-[#41b6e6] rounded hover:bg-blue-50 transition-colors"
+                  onClick={handleGenerateLogo}
+                >
+                  Regenerate
+                </button>
+                <button
+                  type="button"
+                  className="px-3 py-1 text-xs font-medium text-white bg-[#41b6e6] rounded hover:bg-[#3aa5d5] transition-colors"
+                >
+                  Use This Logo
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Error Message */}
+          {logoError && (
+            <div className="mb-4 p-3 border border-blue-200 rounded-lg bg-blue-50">
+              <p className="text-sm text-[#111827]">{logoError}</p>
+            </div>
+          )}
+
+          {/* Manual Upload */}
           <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-lg">
             <div className="space-y-1 text-center">
               <svg
@@ -141,7 +242,7 @@ export default function BrandSettingsStep({ form }: BrandSettingsStepProps) {
               <div className="flex text-sm text-gray-600">
                 <label
                   htmlFor="logoFile"
-                  className="relative cursor-pointer bg-white rounded-md font-medium text-blue-600 hover:text-blue-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue-500"
+                  className="relative cursor-pointer bg-white rounded-md font-medium text-[#41b6e6] hover:text-[#3aa5d5] focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-[#41b6e6]"
                 >
                   <span>Upload a file</span>
                   <input
