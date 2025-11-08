@@ -34,13 +34,13 @@ export default function ProductInfoStep({ form }: ProductInfoStepProps) {
               type="text"
               id="productName"
               {...register('productName')}
-              className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none ${
+              className={`w-full px-3 py-2 pr-16 border rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:outline-none ${
                 errors.productName ? 'border-red-500' : 'border-gray-300'
               }`}
               placeholder="Enter your product name"
               maxLength={100}
             />
-            <span className="absolute right-3 top-2.5 text-xs text-gray-500">
+            <span className="absolute right-3 top-2.5 text-xs text-gray-400 pointer-events-none">
               {productName.length}/100
             </span>
           </div>
@@ -58,13 +58,13 @@ export default function ProductInfoStep({ form }: ProductInfoStepProps) {
               id="productDescription"
               {...register('productDescription')}
               rows={4}
-              className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none resize-none ${
+              className={`w-full px-3 py-2 pb-8 border rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:outline-none resize-none ${
                 errors.productDescription ? 'border-red-500' : 'border-gray-300'
               }`}
               placeholder="Describe your product's key features and benefits"
               maxLength={500}
             />
-            <span className="absolute right-3 bottom-2 text-xs text-gray-500">
+            <span className="absolute right-3 bottom-2 text-xs text-gray-400 pointer-events-none">
               {productDescription.length}/500
             </span>
           </div>
@@ -81,7 +81,7 @@ export default function ProductInfoStep({ form }: ProductInfoStepProps) {
             type="text"
             id="keywords"
             {...register('keywords')}
-            className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none ${
+            className={`w-full px-3 py-2 border rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:outline-none ${
               errors.keywords ? 'border-red-500' : 'border-gray-300'
             }`}
             placeholder="Enter keywords separated by commas (e.g., innovative, eco-friendly, premium)"
@@ -102,7 +102,7 @@ export default function ProductInfoStep({ form }: ProductInfoStepProps) {
             id="targetAudience"
             {...register('targetAudience')}
             rows={3}
-            className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none resize-none ${
+            className={`w-full px-3 py-2 border rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:outline-none resize-none ${
               errors.targetAudience ? 'border-red-500' : 'border-gray-300'
             }`}
             placeholder="Describe your target audience (e.g., young professionals, eco-conscious consumers)"

@@ -199,7 +199,7 @@ export default function VideoConfigStep({ form }: VideoConfigStepProps) {
             <select
               id="resolution"
               {...register('resolution')}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:outline-none"
             >
               <option value={VideoResolution.HD_720P}>720p HD</option>
               <option value={VideoResolution.FHD_1080P}>1080p Full HD</option>
@@ -214,7 +214,7 @@ export default function VideoConfigStep({ form }: VideoConfigStepProps) {
             <select
               id="frameRate"
               {...register('frameRate', { valueAsNumber: true })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:outline-none"
             >
               <option value={VideoFrameRate.FPS_24}>24 fps (Cinematic)</option>
               <option value={VideoFrameRate.FPS_30}>30 fps (Standard)</option>

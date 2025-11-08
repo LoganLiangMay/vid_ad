@@ -18,18 +18,18 @@ export default function FormStepIndicator({
   onStepClick,
 }: FormStepIndicatorProps) {
   return (
-    <nav aria-label="Progress">
-      <ol className="flex items-center justify-between">
+    <nav aria-label="Progress" className="overflow-x-auto pb-4">
+      <ol className="flex items-center min-w-max">
         {steps.map((step, stepIdx) => (
           <li
             key={step.name}
-            className={`relative ${stepIdx !== steps.length - 1 ? 'pr-8 sm:pr-20' : ''} ${
-              stepIdx !== 0 ? 'flex-1' : ''
+            className={`relative ${stepIdx !== steps.length - 1 ? 'pr-8 sm:pr-12 md:pr-16' : ''} ${
+              stepIdx === 0 ? 'pl-0' : 'flex-shrink-0'
             }`}
           >
             {stepIdx !== steps.length - 1 && (
               <div
-                className="absolute top-4 left-8 -right-8 sm:left-12 sm:-right-20 h-0.5"
+                className="absolute top-4 left-10 right-0 h-0.5 w-16 sm:w-24 md:w-32"
                 aria-hidden="true"
               >
                 <div

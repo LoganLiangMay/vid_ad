@@ -136,15 +136,15 @@ export default function GenerateResultsPage() {
     }
 
     setIsGenerating(true);
-    setCurrentPhase('Starting Kling video generation...');
+    setCurrentPhase('Starting Veo 3.1 video generation...');
     setProgress(10);
 
     try {
-      console.log('🎬 Starting Kling transitions for', scenes.length, 'scenes');
+      console.log('🎬 Starting Veo 3.1 transitions for', scenes.length, 'scenes');
 
       const { httpsCallable } = await import('firebase/functions');
       const { functions } = await import('@/lib/firebase/config');
-      const generateTransitions = httpsCallable(functions, 'generateKlingTransitions');
+      const generateTransitions = httpsCallable(functions, 'generateVeoTransitions');
 
       // Map storyboard images to scene format
       const sceneData = scenes.map((img: any) => ({
@@ -157,16 +157,19 @@ export default function GenerateResultsPage() {
       }));
 
       // Get duration and aspect ratio from campaign data
-      const duration = campaignData.duration || 5;
+      const duration = Math.min(8, Math.max(4, campaignData.duration || 8)); // Veo: 4-8 seconds
       const orientation = campaignData.orientation || 'portrait';
-      const aspectRatio = orientation === 'landscape' ? '16:9' :
-                          orientation === 'square' ? '1:1' : '9:16';
+      const aspectRatio = orientation === 'landscape' ? '16:9' : '9:16'; // Veo only supports 16:9 or 9:16
+      const resolution = campaignData.resolution === '1080p' ? '1080p' : '720p';
+      const generateAudio = campaignData.includeBackgroundMusic || false;
 
       const result = await generateTransitions({
         campaignId,
         scenes: sceneData,
         duration,
         aspectRatio,
+        resolution,
+        generateAudio,
       });
 
       const data = result.data as any;
@@ -213,7 +216,7 @@ export default function GenerateResultsPage() {
       try {
         const { httpsCallable } = await import('firebase/functions');
         const { functions } = await import('@/lib/firebase/config');
-        const checkStatus = httpsCallable(functions, 'checkKlingTransitionsStatus');
+        const checkStatus = httpsCallable(functions, 'checkVeoTransitionsStatus');
 
         const result = await checkStatus({
           campaignId,

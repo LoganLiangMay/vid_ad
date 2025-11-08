@@ -1,26 +1,28 @@
+@import url('https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;600;700;800&family=Zilla+Slab:wght@300;400;500;600;700&display=swap');
 @import 'tailwindcss';
 
 :root {
+  /* Marin Software Color Scheme */
   --background: 0 0% 100%;
-  --foreground: 222.2 84% 4.9%;
+  --foreground: 220 39% 11%; /* Dark charcoal #111827 */
   --card: 0 0% 100%;
-  --card-foreground: 222.2 84% 4.9%;
+  --card-foreground: 220 39% 11%;
   --popover: 0 0% 100%;
-  --popover-foreground: 222.2 84% 4.9%;
-  --primary: 217.2 91.2% 59.8%;
-  --primary-foreground: 222.2 47.4% 11.2%;
-  --secondary: 142.1 76.2% 36.3%;
-  --secondary-foreground: 355.7 100% 97.3%;
-  --muted: 210 40% 96.1%;
-  --muted-foreground: 215.4 16.3% 46.9%;
-  --accent: 210 40% 96.1%;
-  --accent-foreground: 222.2 47.4% 11.2%;
+  --popover-foreground: 220 39% 11%;
+  --primary: 196 77% 58%; /* Cyan accent #41b6e6 */
+  --primary-foreground: 0 0% 100%;
+  --secondary: 220 7% 38%; /* Muted gray #5b6068 */
+  --secondary-foreground: 0 0% 100%;
+  --muted: 210 11% 96%; /* Light gray #f7f8f9 */
+  --muted-foreground: 220 7% 38%; /* Muted gray #5b6068 */
+  --accent: 196 77% 58%; /* Cyan accent #41b6e6 */
+  --accent-foreground: 0 0% 100%;
   --destructive: 0 84.2% 60.2%;
   --destructive-foreground: 210 40% 98%;
-  --border: 214.3 31.8% 91.4%;
-  --input: 214.3 31.8% 91.4%;
-  --ring: 217.2 91.2% 59.8%;
-  --radius: 0.5rem;
+  --border: 210 11% 91%; /* Light gray border #e7e9ec */
+  --input: 210 11% 91%;
+  --ring: 196 77% 58%;
+  --radius: 0.75rem; /* 12px for Marin style */
 }
 
 .dark {
@@ -68,8 +70,9 @@
 body {
   background-color: hsl(var(--background));
   color: hsl(var(--foreground));
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-family: "Open Sans", system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   font-feature-settings: "rlig" 1, "calt" 1;
+  font-weight: 400;
 }
 
 @layer utilities {

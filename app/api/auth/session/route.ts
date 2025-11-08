@@ -1,23 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import * as admin from 'firebase-admin';
-
-// Initialize Firebase Admin directly in the route
-function getFirebaseAdmin() {
-  try {
-    if (admin.apps.length === 0) {
-      console.log('🔧 [API /auth/session] Initializing Firebase Admin...');
-      admin.initializeApp({
-        projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'vid-ad',
-      });
-      console.log('✅ [API /auth/session] Firebase Admin initialized');
-    }
-    return admin;
-  } catch (error: any) {
-    console.error('❌ [API /auth/session] Failed to initialize Firebase Admin:', error);
-    throw error;
-  }
-}
+import { adminAuth } from '@/lib/firebase/admin';
 
 export async function POST(request: NextRequest) {
   try {
@@ -32,12 +15,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Initialize and get admin instance
-    const firebaseAdmin = getFirebaseAdmin();
     console.log('🔑 [API /auth/session] Verifying ID token...');
 
     // Verify the ID token
-    const decodedToken = await firebaseAdmin.auth().verifyIdToken(idToken);
+    const decodedToken = await adminAuth.verifyIdToken(idToken);
 
     if (!decodedToken) {
       console.log('❌ [API /auth/session] Invalid ID token');
@@ -52,7 +33,7 @@ export async function POST(request: NextRequest) {
     // Set session cookie (5 days expiry)
     const expiresIn = 60 * 60 * 24 * 5 * 1000; // 5 days in milliseconds
     console.log('🍪 [API /auth/session] Creating session cookie...');
-    const sessionCookie = await firebaseAdmin.auth().createSessionCookie(idToken, {
+    const sessionCookie = await adminAuth.createSessionCookie(idToken, {
       expiresIn,
     });
 

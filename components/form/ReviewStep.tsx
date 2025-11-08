@@ -5,6 +5,7 @@ import {
   AdGenerationFormData,
   formatKeywordsToString,
   estimateGenerationCost,
+  VideoWorkflow,
 } from '@/lib/schemas/adGenerationSchema';
 
 interface ReviewStepProps {
@@ -14,8 +15,9 @@ interface ReviewStepProps {
 }
 
 export default function ReviewStep({ form, creativeDirection, onCreativeDirectionChange }: ReviewStepProps) {
-  const { watch } = form;
+  const { watch, setValue } = form;
   const formData = watch();
+  const workflow = formData.workflow || VideoWorkflow.IMAGE_TO_VIDEO;
 
   const estimatedCost = estimateGenerationCost(
     formData.videoModel,
@@ -27,8 +29,8 @@ export default function ReviewStep({ form, creativeDirection, onCreativeDirectio
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-semibold text-gray-900 mb-2">Review & Generate</h2>
-        <p className="text-gray-600">Review your settings before generating your video ad</p>
+        <h2 className="text-2xl font-semibold text-gray-900 mb-2">Choose Your Flow</h2>
+        <p className="text-gray-600">Review your settings and select how you want to create your video</p>
       </div>
 
       <div className="space-y-6">
@@ -144,6 +146,162 @@ export default function ReviewStep({ form, creativeDirection, onCreativeDirectio
               </dd>
             </div>
           </dl>
+        </div>
+
+        {/* Workflow Selection */}
+        <div className="bg-gradient-to-r from-blue-50 to-purple-50 border-2 border-purple-300 rounded-lg p-6">
+          <div className="mb-4">
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Select Your Workflow</h3>
+            <p className="text-sm text-gray-600">
+              Choose how you want to create your video ad
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Workflow 1: Image-to-Video */}
+            <div
+              onClick={() => setValue('workflow', VideoWorkflow.IMAGE_TO_VIDEO)}
+              className={`relative p-4 rounded-xl border-2 cursor-pointer transition-all ${
+                workflow === VideoWorkflow.IMAGE_TO_VIDEO
+                  ? 'border-purple-600 bg-white shadow-lg'
+                  : 'border-purple-200 bg-white hover:border-purple-300 hover:shadow-md'
+              }`}
+            >
+              {/* Selection Indicator */}
+              {workflow === VideoWorkflow.IMAGE_TO_VIDEO && (
+                <div className="absolute top-3 right-3 bg-purple-600 text-white p-1 rounded-full">
+                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                    <path
+                      fillRule="evenodd"
+                      d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                </div>
+              )}
+
+              <div className="flex items-start gap-3">
+                <div className="text-3xl">🖼️</div>
+                <div className="flex-1">
+                  <h3 className="text-lg font-bold text-gray-900 mb-1">
+                    Image-to-Video
+                  </h3>
+                  <p className="text-sm text-gray-600 mb-2">
+                    Generate 5 concept images, select your favorite, then create video with Kling AI
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    <span className="px-2 py-1 bg-purple-100 text-purple-700 text-xs rounded-full">
+                      Fast
+                    </span>
+                    <span className="px-2 py-1 bg-purple-100 text-purple-700 text-xs rounded-full">
+                      Single Scene
+                    </span>
+                    <span className="px-2 py-1 bg-purple-100 text-purple-700 text-xs rounded-full">
+                      Kling AI
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Workflow 2: Text-to-Video */}
+            <div
+              onClick={() => setValue('workflow', VideoWorkflow.TEXT_TO_VIDEO)}
+              className={`relative p-4 rounded-xl border-2 cursor-pointer transition-all ${
+                workflow === VideoWorkflow.TEXT_TO_VIDEO
+                  ? 'border-purple-600 bg-white shadow-lg'
+                  : 'border-purple-200 bg-white hover:border-purple-300 hover:shadow-md'
+              }`}
+            >
+              {/* Selection Indicator */}
+              {workflow === VideoWorkflow.TEXT_TO_VIDEO && (
+                <div className="absolute top-3 right-3 bg-purple-600 text-white p-1 rounded-full">
+                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                    <path
+                      fillRule="evenodd"
+                      d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                </div>
+              )}
+
+              <div className="flex items-start gap-3">
+                <div className="text-3xl">📝</div>
+                <div className="flex-1">
+                  <h3 className="text-lg font-bold text-gray-900 mb-1">
+                    Text-to-Video
+                  </h3>
+                  <p className="text-sm text-gray-600 mb-2">
+                    Create narrative concepts with detailed storyboards and multi-scene videos
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full">
+                      Narrative
+                    </span>
+                    <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full">
+                      Multi-Scene
+                    </span>
+                    <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full">
+                      Storyboard
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Workflow 3: Yolo Mode */}
+            <div
+              onClick={() => setValue('workflow', VideoWorkflow.YOLO_MODE)}
+              className={`relative p-4 rounded-xl border-2 cursor-pointer transition-all ${
+                workflow === VideoWorkflow.YOLO_MODE
+                  ? 'border-green-600 bg-white shadow-lg'
+                  : 'border-purple-200 bg-white hover:border-green-300 hover:shadow-md'
+              }`}
+            >
+              {/* Selection Indicator */}
+              {workflow === VideoWorkflow.YOLO_MODE && (
+                <div className="absolute top-3 right-3 bg-green-600 text-white p-1 rounded-full">
+                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                    <path
+                      fillRule="evenodd"
+                      d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                </div>
+              )}
+
+              <div className="flex items-start gap-3">
+                <div className="text-3xl">⚡</div>
+                <div className="flex-1">
+                  <h3 className="text-lg font-bold text-gray-900 mb-1">
+                    Yolo Mode
+                  </h3>
+                  <p className="text-sm text-gray-600 mb-2">
+                    Auto-generate video directly from your input using Kling AI - no concept selection
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    <span className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">
+                      Instant
+                    </span>
+                    <span className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">
+                      Auto
+                    </span>
+                    <span className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">
+                      Kling AI
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-4 p-3 bg-white border border-purple-200 rounded-lg">
+            <p className="text-xs text-gray-600">
+              💡 <strong>Note:</strong> Choose the workflow that best fits your needs. You can always try different workflows later.
+            </p>
+          </div>
         </div>
 
         {/* Creative Direction (Optional) */}

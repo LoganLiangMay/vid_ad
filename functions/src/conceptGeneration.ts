@@ -16,7 +16,7 @@ import type { Request, Response } from 'express';
 interface GenerateConceptsRequest {
   productName: string;
   productDescription: string;
-  keywords?: string[];
+  keywords?: string[] | string;
   brandTone?: string;
   targetAudience?: string;
   duration?: number;
@@ -68,12 +68,19 @@ export const generateConcepts = functions
       const {
         productName,
         productDescription,
-        keywords = [],
+        keywords: rawKeywords = [],
         brandTone = 'professional',
         targetAudience,
         duration = 7,
         creativeDirection,
       } = body;
+
+      // Handle keywords as either string or array
+      const keywords = Array.isArray(rawKeywords)
+        ? rawKeywords
+        : typeof rawKeywords === 'string'
+        ? rawKeywords.split(',').map((k: string) => k.trim()).filter(Boolean)
+        : [];
 
       // Check for OpenAI API key
       if (!process.env.OPENAI_API_KEY) {

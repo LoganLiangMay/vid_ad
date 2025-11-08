@@ -98,7 +98,7 @@ export default function BrandSettingsStep({ form }: BrandSettingsStepProps) {
                   value={primaryColor}
                   onChange={(e) => setValue('primaryColor', e.target.value)}
                   placeholder="#000000"
-                  className={`ml-3 flex-1 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none ${
+                  className={`ml-3 flex-1 px-3 py-2 border rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:outline-none ${
                     errors.primaryColor ? 'border-red-500' : 'border-gray-300'
                   }`}
                   pattern="^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$"
@@ -170,7 +170,7 @@ export default function BrandSettingsStep({ form }: BrandSettingsStepProps) {
             type="text"
             id="callToAction"
             {...register('callToAction')}
-            className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none ${
+            className={`w-full px-3 py-2 border rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:outline-none ${
               errors.callToAction ? 'border-red-500' : 'border-gray-300'
             }`}
             placeholder="e.g., Shop Now, Learn More, Get Started"

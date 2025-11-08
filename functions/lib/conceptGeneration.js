@@ -78,7 +78,13 @@ exports.generateConcepts = functions
     }
     try {
         const body = req.body;
-        const { productName, productDescription, keywords = [], brandTone = 'professional', targetAudience, duration = 7, creativeDirection, } = body;
+        const { productName, productDescription, keywords: rawKeywords = [], brandTone = 'professional', targetAudience, duration = 7, creativeDirection, } = body;
+        // Handle keywords as either string or array
+        const keywords = Array.isArray(rawKeywords)
+            ? rawKeywords
+            : typeof rawKeywords === 'string'
+                ? rawKeywords.split(',').map((k) => k.trim()).filter(Boolean)
+                : [];
         // Check for OpenAI API key
         if (!process.env.OPENAI_API_KEY) {
             console.warn('⚠️ OPENAI_API_KEY not configured - using fallback concepts');

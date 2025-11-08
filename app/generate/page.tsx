@@ -6,6 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { adGenerationSchema, AdGenerationFormData } from '@/lib/schemas/adGenerationSchema';
 // import { useAuth } from '@/lib/contexts/AuthContext';
 import AdGenerationForm from '@/components/AdGenerationForm';
+import Link from 'next/link';
 
 export default function GeneratePage() {
   // const { user, loading } = useAuth();
@@ -13,6 +14,7 @@ export default function GeneratePage() {
   const loading = false;
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [campaignId, setCampaignId] = useState<string>('');
+  const [campaignSavedToFirestore, setCampaignSavedToFirestore] = useState(false);
 
   const form = useForm<AdGenerationFormData>({
     resolver: zodResolver(adGenerationSchema) as any,
@@ -67,6 +69,7 @@ export default function GeneratePage() {
           },
           true // isNew
         );
+        setCampaignSavedToFirestore(true);
 
         return;
       }
@@ -105,6 +108,7 @@ export default function GeneratePage() {
           },
           true // isNew
         );
+        setCampaignSavedToFirestore(true);
       }
     };
 
@@ -119,7 +123,7 @@ export default function GeneratePage() {
       const { httpsCallable } = await import('firebase/functions');
       const { functions } = await import('@/lib/firebase/config');
 
-      if (isNew) {
+      if (isNew || !campaignSavedToFirestore) {
         // Use saveCampaign for new campaigns
         const saveCampaignFn = httpsCallable(functions, 'saveCampaign');
         await saveCampaignFn({
@@ -130,6 +134,7 @@ export default function GeneratePage() {
             createdAt: Date.now(),
           },
         });
+        setCampaignSavedToFirestore(true);
         console.log('✅ New campaign created in Firestore');
       } else {
         // Use updateCampaign for existing campaigns
@@ -143,8 +148,29 @@ export default function GeneratePage() {
         });
         console.log('✅ Campaign auto-saved to Firestore');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.warn('⚠️ Failed to save to Firestore:', error);
+      // If update fails because campaign doesn't exist, try creating it
+      if (error?.message?.includes('not found') || error?.code === 'not-found') {
+        console.log('🔄 Campaign not found, creating new one...');
+        try {
+          const { httpsCallable } = await import('firebase/functions');
+          const { functions } = await import('@/lib/firebase/config');
+          const saveCampaignFn = httpsCallable(functions, 'saveCampaign');
+          await saveCampaignFn({
+            campaignId: id,
+            campaignData: {
+              ...data,
+              id,
+              createdAt: Date.now(),
+            },
+          });
+          setCampaignSavedToFirestore(true);
+          console.log('✅ Campaign created after retry');
+        } catch (retryError) {
+          console.error('❌ Failed to create campaign on retry:', retryError);
+        }
+      }
     }
   };
 
@@ -246,6 +272,27 @@ export default function GeneratePage() {
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="container mx-auto px-4">
         <div className="max-w-4xl mx-auto">
+          {/* Back Button */}
+          <Link
+            href="/dashboard"
+            className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-6 transition-colors group"
+          >
+            <svg
+              className="w-5 h-5 transform group-hover:-translate-x-1 transition-transform"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M15 19l-7-7 7-7"
+              />
+            </svg>
+            <span className="font-medium">Back to Dashboard</span>
+          </Link>
+
           <h1 className="text-3xl font-bold text-gray-900 mb-8">
             Generate Video Ad
           </h1>

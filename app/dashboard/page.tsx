@@ -2,10 +2,28 @@
 
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/contexts/AuthContext';
+import { useState, useEffect } from 'react';
+import Header from '@/components/Header';
+
+interface Campaign {
+  id: string;
+  productName: string;
+  status: string;
+  createdAt: number;
+  updatedAt?: number;
+  currentStep?: number;
+  userId?: string;
+  userEmail?: string;
+  isTemplate?: boolean;
+}
 
 export default function DashboardPage() {
   const router = useRouter();
   const { currentUser, logout, loading } = useAuth();
+  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+  const [loadingCampaigns, setLoadingCampaigns] = useState(true);
+  const [templateCampaigns, setTemplateCampaigns] = useState<Campaign[]>([]);
+  const [loadingTemplates, setLoadingTemplates] = useState(true);
 
   const handleLogout = async () => {
     try {
@@ -16,134 +34,275 @@ export default function DashboardPage() {
     }
   };
 
+  // Fetch campaigns
+  useEffect(() => {
+    const fetchCampaigns = async () => {
+      if (!currentUser) return;
+
+      try {
+        setLoadingCampaigns(true);
+        const response = await fetch('/api/campaigns', {
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json' },
+        });
+
+        const data = await response.json();
+
+        if (data.success && data.campaigns) {
+          // Sort by most recent first
+          const sortedCampaigns = data.campaigns.sort((a: Campaign, b: Campaign) =>
+            (b.updatedAt || b.createdAt) - (a.updatedAt || a.createdAt)
+          );
+          setCampaigns(sortedCampaigns);
+        }
+      } catch (error) {
+        console.error('Error fetching campaigns:', error);
+      } finally {
+        setLoadingCampaigns(false);
+      }
+    };
+
+    fetchCampaigns();
+  }, [currentUser]);
+
+  // Fetch template campaigns (public examples)
+  useEffect(() => {
+    const fetchTemplates = async () => {
+      try {
+        setLoadingTemplates(true);
+        const { httpsCallable } = await import('firebase/functions');
+        const { functions } = await import('@/lib/firebase/config');
+
+        const getTemplateCampaignsFn = httpsCallable(functions, 'getTemplateCampaigns');
+        const result = await getTemplateCampaignsFn() as any;
+
+        if (result.data.success && result.data.templates) {
+          setTemplateCampaigns(result.data.templates);
+        }
+      } catch (error) {
+        console.error('Error fetching templates:', error);
+        // For now, use empty array as fallback
+        setTemplateCampaigns([]);
+      } finally {
+        setLoadingTemplates(false);
+      }
+    };
+
+    fetchTemplates();
+  }, []);
+
+  const formatDate = (timestamp: number) => {
+    return new Date(timestamp).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    });
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status?.toLowerCase()) {
+      case 'draft':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'generating':
+        return 'bg-blue-100 text-blue-800';
+      case 'completed':
+        return 'bg-green-100 text-green-800';
+      case 'failed':
+        return 'bg-red-100 text-red-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
+
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="min-h-screen flex items-center justify-center bg-white">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Navigation Header */}
-      <nav className="bg-card border-b border-border shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16">
-            <div className="flex items-center">
-              <h1 className="text-xl font-semibold text-foreground">AI Video Ad Generator</h1>
-            </div>
-            <div className="flex items-center space-x-4">
-              <span className="text-sm text-foreground">{currentUser?.email}</span>
-              <button
-                onClick={handleLogout}
-                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-              >
-                Logout
-              </button>
-            </div>
-          </div>
-        </div>
-      </nav>
+    <div className="min-h-screen bg-white">
+      {/* Header */}
+      <Header user={currentUser} onLogout={handleLogout} />
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-        {/* Welcome Section */}
-        <div className="px-4 py-6 sm:px-0">
-          <div className="bg-card border border-border overflow-hidden shadow rounded-lg">
-            <div className="px-4 py-5 sm:p-6">
-              <h2 className="text-2xl font-bold text-foreground mb-2">
-                Welcome to AI Video Ad Generator!
-              </h2>
-              <p className="text-muted-foreground">
-                Start creating professional video advertisements with the power of AI.
-              </p>
-            </div>
+      <main className="max-w-[1120px] mx-auto py-8 sm:py-12 px-4 sm:px-6 lg:px-8">
+        {/* Primary CTA Section */}
+        <div className="mb-12 text-center">
+          <button
+            onClick={() => router.push('/generate?new=true')}
+            className="bg-primary hover:bg-primary/90 text-white font-bold text-xl py-6 px-12 rounded-xl transition-all transform hover:scale-105 shadow-lg hover:shadow-xl mb-4 inline-flex items-center space-x-3"
+          >
+            <span className="text-3xl">🎬</span>
+            <span>Generate New Video</span>
+          </button>
+          <div>
+            <button className="text-muted-foreground hover:text-foreground font-semibold text-base underline transition-colors">
+              📚 Browse Templates
+            </button>
           </div>
         </div>
 
         {/* Dashboard Grid */}
-        <div className="px-4 py-6 sm:px-0">
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mb-12">
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {/* Campaigns Card */}
-            <div className="bg-card border border-border overflow-hidden shadow rounded-lg">
-              <div className="px-4 py-5 sm:p-6">
-                <dt className="text-sm font-medium text-muted-foreground truncate">My Campaigns</dt>
-                <dd className="mt-1 text-3xl font-semibold text-foreground">-</dd>
-                <div className="mt-3 flex space-x-2">
-                  <button
-                    onClick={() => router.push('/dashboard/campaigns')}
-                    className="text-sm text-primary hover:text-primary/80 transition-colors"
-                  >
-                    View All →
-                  </button>
-                  <button
-                    onClick={() => router.push('/generate')}
-                    className="text-sm text-primary hover:text-primary/80 transition-colors"
-                  >
-                    Create New →
-                  </button>
-                </div>
+            <div className="bg-white border border-border rounded-xl p-6 hover:shadow-lg transition-shadow">
+              <dt className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
+                My Campaigns
+              </dt>
+              <dd className="text-4xl font-display font-bold text-foreground mb-4">
+                {loadingCampaigns ? '...' : campaigns.length}
+              </dd>
+              <div className="flex flex-col space-y-2">
+                <button
+                  onClick={() => router.push('/dashboard/campaigns')}
+                  className="text-sm font-semibold text-primary hover:text-primary/80 transition-colors text-left"
+                >
+                  View All →
+                </button>
+                <button
+                  onClick={() => router.push('/generate?new=true')}
+                  className="text-sm font-semibold text-primary hover:text-primary/80 transition-colors text-left"
+                >
+                  Create New →
+                </button>
               </div>
             </div>
 
             {/* Videos Card */}
-            <div className="bg-card border border-border overflow-hidden shadow rounded-lg">
-              <div className="px-4 py-5 sm:p-6">
-                <dt className="text-sm font-medium text-muted-foreground truncate">Videos Generated</dt>
-                <dd className="mt-1 text-3xl font-semibold text-foreground">0</dd>
-                <div className="mt-3">
-                  <button className="text-sm text-primary hover:text-primary/80 transition-colors">
-                    View All Videos →
-                  </button>
-                </div>
+            <div className="bg-white border border-border rounded-xl p-6 hover:shadow-lg transition-shadow">
+              <dt className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
+                Videos Generated
+              </dt>
+              <dd className="text-4xl font-display font-bold text-foreground mb-4">0</dd>
+              <div>
+                <button className="text-sm font-semibold text-primary hover:text-primary/80 transition-colors">
+                  View All Videos →
+                </button>
               </div>
             </div>
 
             {/* Credits Card */}
-            <div className="bg-card border border-border overflow-hidden shadow rounded-lg">
-              <div className="px-4 py-5 sm:p-6">
-                <dt className="text-sm font-medium text-muted-foreground truncate">Available Credits</dt>
-                <dd className="mt-1 text-3xl font-semibold text-foreground">100</dd>
-                <div className="mt-3">
-                  <button className="text-sm text-primary hover:text-primary/80 transition-colors">
-                    Buy More Credits →
-                  </button>
-                </div>
+            <div className="bg-white border border-border rounded-xl p-6 hover:shadow-lg transition-shadow">
+              <dt className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
+                Available Credits
+              </dt>
+              <dd className="text-4xl font-display font-bold text-foreground mb-4">100</dd>
+              <div>
+                <button className="text-sm font-semibold text-primary hover:text-primary/80 transition-colors">
+                  Buy More Credits →
+                </button>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Quick Actions */}
-        <div className="px-4 py-6 sm:px-0">
-          <h3 className="text-lg font-medium text-foreground mb-4">Quick Actions</h3>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            <button
-              onClick={() => router.push('/generate')}
-              className="bg-primary hover:bg-primary/90 text-primary-foreground font-medium py-3 px-4 rounded-lg transition-colors flex flex-col items-center"
-            >
-              <span className="text-2xl mb-1">🎬</span>
-              Generate Video with AI
-            </button>
-            <button className="bg-card hover:bg-card/80 text-foreground font-medium py-3 px-4 rounded-lg border border-border transition-colors flex flex-col items-center">
-              <span className="text-2xl mb-1">📚</span>
-              Browse Templates
-            </button>
-          </div>
+        {/* Example Campaigns Section */}
+        <div className="mb-12">
+          <h3 className="font-display text-2xl font-bold text-foreground mb-6">Example Campaigns</h3>
+          {loadingTemplates ? (
+            <div className="flex justify-center py-12">
+              <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary"></div>
+            </div>
+          ) : templateCampaigns.length === 0 ? (
+            <div className="bg-muted/30 border border-border rounded-xl p-12 text-center">
+              <p className="text-muted-foreground text-lg">
+                No example campaigns available yet. Check back soon!
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {templateCampaigns.map((template) => (
+                <div
+                  key={template.id}
+                  onClick={() => router.push(`/generate?templateId=${template.id}`)}
+                  className="bg-white border border-border rounded-xl p-6 hover:shadow-lg transition-all cursor-pointer group relative"
+                >
+                  <div className="absolute top-4 right-4">
+                    <span className="bg-blue-100 text-blue-800 text-xs font-semibold px-3 py-1 rounded-full">
+                      Template
+                    </span>
+                  </div>
+                  <div className="mb-3 pr-20">
+                    <h4 className="font-display text-lg font-bold text-foreground group-hover:text-primary transition-colors line-clamp-2">
+                      {template.productName || 'Untitled Template'}
+                    </h4>
+                  </div>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    {template.userEmail ? `By ${template.userEmail.split('@')[0]}` : 'Community template'}
+                  </p>
+                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                    <span>👁️ View-only</span>
+                    <span className="text-primary font-semibold group-hover:underline">View & Copy →</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* All Campaigns */}
+        <div className="mb-12">
+          <h3 className="font-display text-2xl font-bold text-foreground mb-6">My Campaigns</h3>
+            {loadingCampaigns ? (
+              <div className="flex justify-center py-12">
+                <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary"></div>
+              </div>
+            ) : campaigns.length === 0 ? (
+              <div className="bg-muted/30 border border-border rounded-xl p-12 text-center">
+                <p className="text-muted-foreground text-lg mb-6">
+                  No campaigns yet. Create your first video ad!
+                </p>
+                <button
+                  onClick={() => router.push('/generate?new=true')}
+                  className="bg-primary hover:bg-primary/90 text-white font-semibold py-3 px-8 rounded-lg transition-colors"
+                >
+                  Create Campaign
+                </button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                {campaigns.map((campaign) => (
+                  <div
+                    key={campaign.id}
+                    onClick={() => router.push(`/generate?campaignId=${campaign.id}`)}
+                    className="bg-white border border-border rounded-xl p-6 hover:shadow-lg transition-all cursor-pointer group"
+                  >
+                    <div className="flex items-start justify-between mb-3">
+                      <h4 className="font-display text-lg font-bold text-foreground group-hover:text-primary transition-colors line-clamp-1">
+                        {campaign.productName || 'Untitled Campaign'}
+                      </h4>
+                      <span className={`text-xs font-semibold px-3 py-1 rounded-full ${getStatusColor(campaign.status)}`}>
+                        {campaign.status}
+                      </span>
+                    </div>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      {campaign.currentStep ? `Step ${campaign.currentStep}` : 'Not started'}
+                    </p>
+                    <div className="flex items-center justify-between text-xs text-muted-foreground">
+                      <span>Created: {formatDate(campaign.createdAt)}</span>
+                      <span className="text-primary font-semibold group-hover:underline">Open →</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
         </div>
 
         {/* Account Info */}
-        <div className="px-4 py-6 sm:px-0">
-          <div className="bg-primary/10 border-l-4 border-primary p-4 rounded-md">
-            <div className="flex">
+        <div className="mt-12">
+          <div className="bg-primary/5 border border-primary/20 rounded-xl p-6">
+            <div className="flex items-start space-x-3">
               <div className="flex-shrink-0">
-                <svg className="h-5 w-5 text-primary" viewBox="0 0 20 20" fill="currentColor">
+                <svg className="h-6 w-6 text-primary" viewBox="0 0 20 20" fill="currentColor">
                   <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
                 </svg>
               </div>
-              <div className="ml-3">
-                <p className="text-sm text-foreground">
+              <div>
+                <p className="text-sm font-medium text-foreground">
                   Your session will remain active until you logout.
                 </p>
               </div>

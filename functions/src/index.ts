@@ -15,6 +15,9 @@ export * from './s3Upload';
 export * from './sceneGeneration';
 export * from './conceptGeneration';
 export * from './klingVideo';
+export * from './veoVideo';
+export * from './backgroundRemoval';
+export * from './imageToVideo';
 
 // Health check function
 export const healthCheck = functions.https.onRequest(async (_req, res) => {

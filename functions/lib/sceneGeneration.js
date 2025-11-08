@@ -226,14 +226,54 @@ async function generateSingleImage(prompt, sceneNumber) {
                 output_quality: 90,
             },
         });
-        const imageUrl = Array.isArray(output) ? output[0] : output;
-        console.log(`✅ Image ${sceneNumber} generated`);
-        return {
+        console.log(`🔍 Raw nano-banana output for scene ${sceneNumber}:`, JSON.stringify(output).substring(0, 200));
+        // Handle various output formats from Replicate
+        let imageUrl;
+        if (typeof output === 'string') {
+            imageUrl = output;
+            console.log(`✅ Output is string: ${imageUrl.substring(0, 50)}...`);
+        }
+        else if (Array.isArray(output)) {
+            imageUrl = String(output[0] || '');
+            console.log(`✅ Output is array, using first element (type: ${typeof output[0]}): ${imageUrl.substring(0, 50)}...`);
+        }
+        else if (output && typeof output === 'object') {
+            // Check if output has a url() method (Replicate FileOutput)
+            if (typeof output.url === 'function') {
+                imageUrl = String(output.url());
+                console.log(`✅ Output is FileOutput with url() method: ${imageUrl.substring(0, 50)}...`);
+            }
+            else if ('url' in output && typeof output.url === 'string') {
+                imageUrl = String(output.url);
+                console.log(`✅ Output is object with url property: ${imageUrl.substring(0, 50)}...`);
+            }
+            else {
+                console.error(`❌ Unexpected object format from nano-banana:`, output);
+                imageUrl = String(output);
+            }
+        }
+        else {
+            console.error(`❌ Unexpected output format from nano-banana:`, output);
+            imageUrl = String(output);
+        }
+        // Validate that imageUrl is actually a string and not empty
+        if (typeof imageUrl !== 'string') {
+            console.error(`❌ imageUrl is not a string! Type: ${typeof imageUrl}, Value:`, imageUrl);
+            imageUrl = String(imageUrl);
+        }
+        if (!imageUrl || imageUrl.includes('function')) {
+            console.error(`❌ Invalid image URL extracted:`, imageUrl);
+            throw new Error(`Failed to extract valid image URL from Replicate response. Got: ${imageUrl}`);
+        }
+        console.log(`✅ Image ${sceneNumber} generated successfully with URL: ${imageUrl}`);
+        const result = {
             id: `scene-${sceneNumber}`,
             url: imageUrl,
             prompt: prompt,
             sceneNumber: sceneNumber,
         };
+        console.log(`📦 Returning image object for scene ${sceneNumber}:`, JSON.stringify(result));
+        return result;
     }
     catch (error) {
         console.error(`❌ Error generating image ${sceneNumber}:`, error);

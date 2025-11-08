@@ -1,68 +1,110 @@
 import Link from 'next/link';
+import Header from '@/components/Header';
 
 export default function HomePage() {
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center p-24">
-      <div className="z-10 w-full max-w-5xl items-center justify-between font-mono text-sm lg:flex">
-        <div className="w-full">
-          <h1 className="mb-8 text-center text-5xl font-bold bg-gradient-to-r from-blue-600 to-green-600 bg-clip-text text-transparent">
-            AI Video Ad Generator
-          </h1>
-          <p className="mb-12 text-center text-xl text-gray-600">
-            Generate Professional Customizable Video Advertisements
-          </p>
-          <div className="flex flex-col gap-4 sm:flex-row justify-center">
-            <Link
-              href="/auth/signup"
-              className="rounded-lg bg-blue-600 px-8 py-3 text-white font-semibold hover:bg-blue-700 transition-colors text-center"
-            >
-              Get Started
-            </Link>
-            <Link
-              href="/auth/login"
-              className="rounded-lg border border-gray-300 px-8 py-3 font-semibold hover:bg-gray-100 transition-colors text-center"
-            >
-              Sign In
-            </Link>
+    <div className="min-h-screen bg-white">
+      <Header showAuth={true} />
+
+      <main>
+        {/* Announcement Banner */}
+        <div className="bg-muted border-b border-border">
+          <div className="max-w-[1120px] mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <div className="text-center">
+              <span className="inline-block bg-white border border-border px-4 py-1.5 rounded-full text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                New Chapter
+              </span>
+            </div>
           </div>
         </div>
-      </div>
 
-      <div className="mt-16 grid gap-8 lg:grid-cols-3">
-        <FeatureCard
-          title="AI Script Generation"
-          description="Generate compelling ad scripts with GPT-4o"
-          icon="📝"
-        />
-        <FeatureCard
-          title="Video Creation"
-          description="Create stunning videos with Replicate AI models"
-          icon="🎬"
-        />
-        <FeatureCard
-          title="Voice Generation"
-          description="Professional voiceovers with OpenAI TTS"
-          icon="🎙️"
-        />
-      </div>
-    </main>
+        {/* Hero Section */}
+        <section className="py-16 sm:py-24">
+          <div className="max-w-[1120px] mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center">
+              <h1 className="font-display text-4xl sm:text-5xl md:text-6xl font-bold text-foreground mb-6 leading-tight">
+                Marin Software enters its{' '}
+                <span className="text-primary">AI-first era</span>{' '}
+                with Zax Capital
+              </h1>
+              <p className="text-lg sm:text-xl text-foreground max-w-3xl mx-auto mb-4">
+                We&apos;re building the next generation of performance marketing—{' '}
+                <strong>AI that plans, optimizes, and learns</strong> with every campaign.
+              </p>
+              <p className="text-lg sm:text-xl text-muted-foreground max-w-3xl mx-auto mb-12">
+                The acquisition accelerates our roadmap and unlocks what&apos;s next.
+              </p>
+
+              {/* CTA Buttons */}
+              <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16">
+                <Link
+                  href="/auth/signup"
+                  className="inline-flex items-center justify-center bg-primary text-white px-8 py-3.5 rounded-lg font-semibold hover:bg-primary/90 transition-colors text-base"
+                >
+                  Get Started
+                </Link>
+                <Link
+                  href="/image-to-video"
+                  className="inline-flex items-center justify-center bg-foreground text-white px-8 py-3.5 rounded-lg font-semibold hover:bg-foreground/90 transition-colors text-base"
+                >
+                  Image to Video
+                </Link>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Feature Cards */}
+        <section className="py-16 bg-muted/30">
+          <div className="max-w-[1120px] mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="grid gap-6 md:grid-cols-3">
+              <FeatureCard
+                title="Predict"
+                description="AI-powered forecasting & planning"
+              />
+              <FeatureCard
+                title="Automate"
+                description="Always-on optimization across channels"
+              />
+              <FeatureCard
+                title="Prove"
+                description="Transparent lift, measurable outcomes"
+              />
+            </div>
+          </div>
+        </section>
+
+        {/* Additional Info Section */}
+        <section className="py-16">
+          <div className="max-w-[1120px] mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <p className="text-muted-foreground mb-8">
+              More updates are on the way—including early access invites.
+            </p>
+            <p className="text-sm text-muted-foreground">
+              If you are a shareholder with questions, please contact:{' '}
+              <strong>Armanino (Administrator)</strong> —{' '}
+              <a href="mailto:marinsoftware@armanino.com" className="text-primary hover:underline">
+                marinsoftware@armanino.com
+              </a>
+            </p>
+          </div>
+        </section>
+      </main>
+    </div>
   );
 }
 
 function FeatureCard({
   title,
   description,
-  icon,
 }: {
   title: string;
   description: string;
-  icon: string;
 }) {
   return (
-    <div className="rounded-lg border border-gray-200 p-6 hover:shadow-lg transition-shadow">
-      <div className="mb-4 text-4xl">{icon}</div>
-      <h3 className="mb-2 text-xl font-semibold">{title}</h3>
-      <p className="text-gray-600">{description}</p>
+    <div className="bg-white border border-border rounded-xl p-8 text-center hover:shadow-lg transition-shadow">
+      <h3 className="font-display text-xl font-bold text-foreground mb-2">{title}</h3>
+      <p className="text-muted-foreground">{description}</p>
     </div>
   );
 }

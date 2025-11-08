@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { UseFormReturn } from 'react-hook-form';
-import { AdGenerationFormData } from '@/lib/schemas/adGenerationSchema';
+import { AdGenerationFormData, VideoWorkflow } from '@/lib/schemas/adGenerationSchema';
 import FormStepIndicator from './form/FormStepIndicator';
 import ProductInfoStep from './form/ProductInfoStep';
 import BrandSettingsStep from './form/BrandSettingsStep';
@@ -19,14 +19,32 @@ interface AdGenerationFormProps {
   onStepChange?: (step: number, formData: AdGenerationFormData) => void;
 }
 
-const steps = [
+// Define steps for each workflow
+const imageToVideoSteps = [
   { id: 1, name: 'Product Info', description: 'Basic product details' },
   { id: 2, name: 'Brand Settings', description: 'Brand tone and style' },
   { id: 3, name: 'Additional Options', description: 'Extra features' },
-  { id: 4, name: 'Review', description: 'Review form data' },
+  { id: 4, name: 'Flows', description: 'Select workflow' },
+  { id: 5, name: 'Concept', description: 'Select concept image' },
+  { id: 6, name: 'Video Config', description: 'Video specifications' },
+];
+
+const textToVideoSteps = [
+  { id: 1, name: 'Product Info', description: 'Basic product details' },
+  { id: 2, name: 'Brand Settings', description: 'Brand tone and style' },
+  { id: 3, name: 'Additional Options', description: 'Extra features' },
+  { id: 4, name: 'Flows', description: 'Select workflow' },
   { id: 5, name: 'Concept', description: 'Select creative concept' },
   { id: 6, name: 'Storyboard', description: 'Review scene images' },
   { id: 7, name: 'Video Config', description: 'Video specifications' },
+];
+
+const yoloModeSteps = [
+  { id: 1, name: 'Product Info', description: 'Basic product details' },
+  { id: 2, name: 'Brand Settings', description: 'Brand tone and style' },
+  { id: 3, name: 'Additional Options', description: 'Extra features' },
+  { id: 4, name: 'Flows', description: 'Select workflow' },
+  { id: 5, name: 'Video Config', description: 'Video specifications' },
 ];
 
 export default function AdGenerationForm({
@@ -40,6 +58,16 @@ export default function AdGenerationForm({
   const [selectedConcept, setSelectedConcept] = useState<any>(null);
   const [storyboardImages, setStoryboardImages] = useState<any[]>([]);
   const [numberOfScenes, setNumberOfScenes] = useState(5); // Default 5 scenes
+
+  // Determine which workflow is selected and get appropriate steps
+  const workflow = form.watch('workflow') || VideoWorkflow.IMAGE_TO_VIDEO;
+  const isImageToVideo = workflow === VideoWorkflow.IMAGE_TO_VIDEO;
+  const isYoloMode = workflow === VideoWorkflow.YOLO_MODE;
+  const steps = useMemo(() => {
+    if (isYoloMode) return yoloModeSteps;
+    if (isImageToVideo) return imageToVideoSteps;
+    return textToVideoSteps;
+  }, [isImageToVideo, isYoloMode]);
 
   const handleNext = async () => {
     // Validate current step fields before proceeding
@@ -55,15 +83,40 @@ export default function AdGenerationForm({
       case 3:
         // Optional fields, no validation needed
         break;
+      case 4:
+        // Flows step - workflow selection is required
+        fieldsToValidate = ['workflow'];
+        break;
       case 5:
-        // Concept selection is required
+        // For Yolo Mode: Video Config, then auto-submit
+        if (isYoloMode) {
+          fieldsToValidate = ['variations', 'duration', 'orientation', 'resolution', 'frameRate', 'videoModel'];
+          // Validate and auto-submit
+          const isValid = await form.trigger(fieldsToValidate);
+          if (!isValid) return;
+
+          // Auto-submit the form for video generation
+          form.handleSubmit(onSubmit)();
+          return;
+        }
+        // For other workflows: Concept selection is required
         if (!selectedConcept) {
           alert('Please select a concept before proceeding');
           return;
         }
         break;
+      case 6:
+        // For Image-to-Video: Video Config validation
+        // For Text-to-Video: Storyboard (no validation)
+        if (isImageToVideo) {
+          fieldsToValidate = ['variations', 'duration', 'orientation', 'resolution', 'frameRate', 'videoModel'];
+        }
+        break;
       case 7:
-        fieldsToValidate = ['variations', 'duration', 'orientation', 'resolution', 'frameRate', 'videoModel'];
+        // Text-to-Video: Video Config validation
+        if (!isImageToVideo && !isYoloMode) {
+          fieldsToValidate = ['variations', 'duration', 'orientation', 'resolution', 'frameRate', 'videoModel'];
+        }
         break;
     }
 
@@ -119,8 +172,21 @@ export default function AdGenerationForm({
         case 2:
           fieldsToValidate = ['brandTone', 'primaryColor'];
           break;
+        case 4:
+          // Flows step - workflow selection
+          fieldsToValidate = ['workflow'];
+          break;
+        case 6:
+          // For Image-to-Video: Video Config validation
+          if (isImageToVideo) {
+            fieldsToValidate = ['variations', 'duration', 'orientation', 'resolution', 'frameRate', 'videoModel'];
+          }
+          break;
         case 7:
-          fieldsToValidate = ['variations', 'duration', 'orientation', 'resolution', 'frameRate', 'videoModel'];
+          // For Text-to-Video: Video Config validation
+          if (!isImageToVideo) {
+            fieldsToValidate = ['variations', 'duration', 'orientation', 'resolution', 'frameRate', 'videoModel'];
+          }
           break;
       }
 
@@ -194,7 +260,9 @@ export default function AdGenerationForm({
               onCreativeDirectionChange={setCreativeDirection}
             />
           )}
-          {currentStep === 5 && (
+
+          {/* Concept step - not shown for Yolo Mode */}
+          {!isYoloMode && currentStep === 5 && (
             <ConceptSelectionStep
               formData={form.getValues()}
               creativeDirection={creativeDirection}
@@ -204,7 +272,9 @@ export default function AdGenerationForm({
               onNumberOfScenesChange={setNumberOfScenes}
             />
           )}
-          {currentStep === 6 && (
+
+          {/* Storyboard step - only for Text-to-Video workflow */}
+          {!isImageToVideo && !isYoloMode && currentStep === 6 && (
             <StoryboardStep
               formData={form.getValues()}
               selectedConcept={selectedConcept}
@@ -213,7 +283,11 @@ export default function AdGenerationForm({
               numberOfScenes={numberOfScenes}
             />
           )}
-          {currentStep === 7 && <VideoConfigStep form={form} />}
+
+          {/* Video Config - step 5 for Yolo Mode, step 6 for Image-to-Video, step 7 for Text-to-Video */}
+          {((isYoloMode && currentStep === 5) || (isImageToVideo && currentStep === 6) || (!isImageToVideo && !isYoloMode && currentStep === 7)) && (
+            <VideoConfigStep form={form} />
+          )}
 
           <div className="flex justify-between pt-6 border-t">
             <button
@@ -240,9 +314,13 @@ export default function AdGenerationForm({
                 <button
                   type="button"
                   onClick={handleNext}
-                  className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  className={`px-6 py-2 text-white rounded-lg ${
+                    isYoloMode && currentStep === 5
+                      ? 'bg-green-600 hover:bg-green-700'
+                      : 'bg-blue-600 hover:bg-blue-700'
+                  }`}
                 >
-                  Next
+                  {isYoloMode && currentStep === 5 ? 'Generate Video' : 'Next'}
                 </button>
               ) : (
                 <button

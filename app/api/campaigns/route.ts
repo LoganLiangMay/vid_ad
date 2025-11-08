@@ -1,22 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import * as admin from 'firebase-admin';
 import { getUserCampaigns, getCampaignsByStatus } from '@/lib/firebase/campaigns';
 import { cookies } from 'next/headers';
-
-// Initialize Firebase Admin directly in the route
-function getFirebaseAdmin() {
-  try {
-    if (admin.apps.length === 0) {
-      admin.initializeApp({
-        projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'vid-ad',
-      });
-    }
-    return admin;
-  } catch (error: any) {
-    console.error('❌ [API /campaigns] Failed to initialize Firebase Admin:', error);
-    throw error;
-  }
-}
+import { adminAuth } from '@/lib/firebase/admin';
 
 export async function GET(request: NextRequest) {
   try {
@@ -28,8 +13,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const firebaseAdmin = getFirebaseAdmin();
-    const decodedToken = await firebaseAdmin.auth().verifySessionCookie(sessionCookie);
+    const decodedToken = await adminAuth.verifySessionCookie(sessionCookie);
     const userId = decodedToken.uid;
 
     // Get query parameters

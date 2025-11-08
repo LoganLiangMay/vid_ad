@@ -19,6 +19,7 @@ const SceneSchema = zod_1.z.object({
     sceneNumber: zod_1.z.number(),
     description: zod_1.z.string(),
     imagePrompt: zod_1.z.string(),
+    videoPrompt: zod_1.z.string(), // Prompt for video generation from the image
     cameraAngle: zod_1.z.string(),
     lighting: zod_1.z.string(),
     mood: zod_1.z.string(),
@@ -69,6 +70,7 @@ OUTPUT FORMAT (JSON):
       "sceneNumber": 1,
       "description": "Brief scene description",
       "imagePrompt": "Detailed prompt for image generation with visual style, composition, lighting",
+      "videoPrompt": "Concise motion/animation prompt describing how this image should animate when converted to video (camera movement, subject motion, effects)",
       "cameraAngle": "Camera shot type (e.g., wide shot, close-up, tracking shot)",
       "lighting": "Lighting description (e.g., warm golden hour, dramatic shadows)",
       "mood": "Scene mood (e.g., energetic, mysterious, calm)"
@@ -134,6 +136,7 @@ Generate {numberOfScenes} scenes now:
                 id: `scene-${scene.sceneNumber}`,
                 url: imageUrl,
                 prompt: scene.imagePrompt,
+                videoPrompt: scene.videoPrompt,
                 sceneNumber: scene.sceneNumber,
                 description: scene.description,
                 cameraAngle: scene.cameraAngle,
@@ -219,16 +222,17 @@ CALL TO ACTION: ${context.callToAction}
     generateFallbackPrompts(userPrompt, numberOfScenes) {
         console.log('⚠️ Using fallback simple prompts');
         const sceneTypes = [
-            { type: 'establishing shot, wide angle', camera: 'Wide shot', lighting: 'Natural daylight', mood: 'Inviting' },
-            { type: 'medium close-up, detail focus', camera: 'Medium close-up', lighting: 'Soft key light', mood: 'Focused' },
-            { type: 'dynamic angle, action moment', camera: 'Dutch angle', lighting: 'Dramatic side light', mood: 'Energetic' },
-            { type: 'close-up, dramatic lighting', camera: 'Close-up', lighting: 'Dramatic chiaroscuro', mood: 'Intense' },
-            { type: 'final hero shot, epic reveal', camera: 'Hero shot', lighting: 'Golden hour glow', mood: 'Triumphant' },
+            { type: 'establishing shot, wide angle', camera: 'Wide shot', lighting: 'Natural daylight', mood: 'Inviting', motion: 'Slow forward dolly, revealing the scene' },
+            { type: 'medium close-up, detail focus', camera: 'Medium close-up', lighting: 'Soft key light', mood: 'Focused', motion: 'Gentle zoom in to highlight details' },
+            { type: 'dynamic angle, action moment', camera: 'Dutch angle', lighting: 'Dramatic side light', mood: 'Energetic', motion: 'Dynamic camera movement with subject in motion' },
+            { type: 'close-up, dramatic lighting', camera: 'Close-up', lighting: 'Dramatic chiaroscuro', mood: 'Intense', motion: 'Subtle push in, dramatic reveal' },
+            { type: 'final hero shot, epic reveal', camera: 'Hero shot', lighting: 'Golden hour glow', mood: 'Triumphant', motion: 'Slow circular orbit around subject' },
         ];
         const scenes = sceneTypes.slice(0, numberOfScenes).map((scene, index) => ({
             sceneNumber: index + 1,
             description: `${userPrompt} - ${scene.type}`,
             imagePrompt: `${userPrompt}, scene ${index + 1}, ${scene.type}, professional photography, cinematic, high quality`,
+            videoPrompt: scene.motion,
             cameraAngle: scene.camera,
             lighting: scene.lighting,
             mood: scene.mood,

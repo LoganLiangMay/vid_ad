@@ -31,6 +31,13 @@ export const VideoFrameRate = {
 export const ReplicateModel = {
   SEEDANCE_LITE: 'seedance-1-lite',
   SEEDANCE_PRO: 'seedance-1-pro',
+  KLING_TURBO_PRO: 'kling-v2.5-turbo-pro',
+} as const;
+
+export const VideoWorkflow = {
+  IMAGE_TO_VIDEO: 'image-to-video', // Kling: Generate 5 concept images, select one, generate video
+  TEXT_TO_VIDEO: 'text-to-video',   // Current: Generate concepts with storyboards
+  YOLO_MODE: 'yolo-mode',           // Auto-generate video directly with Kling from input data
 } as const;
 
 // Zod schema for the ad generation form
@@ -113,13 +120,23 @@ export const adGenerationSchema = z.object({
     .default(30),
 
   videoModel: z
-    .enum([ReplicateModel.SEEDANCE_LITE, ReplicateModel.SEEDANCE_PRO])
+    .enum([ReplicateModel.SEEDANCE_LITE, ReplicateModel.SEEDANCE_PRO, ReplicateModel.KLING_TURBO_PRO])
     .default(ReplicateModel.SEEDANCE_LITE),
+
+  // Workflow Selection
+  workflow: z
+    .enum([VideoWorkflow.IMAGE_TO_VIDEO, VideoWorkflow.TEXT_TO_VIDEO, VideoWorkflow.YOLO_MODE])
+    .default(VideoWorkflow.IMAGE_TO_VIDEO),
 
   // File Uploads (optional) - Simplified to avoid validation issues
   logoFile: z.any().optional(),
 
   productImages: z.any().optional().default([]),
+
+  // Logo Consistency (new feature)
+  logoEnabled: z.boolean().default(false),
+  logo: z.any().optional(), // ProcessedLogo from logoProcessor.ts
+  logoSettings: z.any().optional(), // LogoSettings from logoProcessor.ts
 
   // Additional Options
   includeVoiceover: z.boolean().default(true),

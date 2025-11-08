@@ -52,6 +52,9 @@ __exportStar(require("./s3Upload"), exports);
 __exportStar(require("./sceneGeneration"), exports);
 __exportStar(require("./conceptGeneration"), exports);
 __exportStar(require("./klingVideo"), exports);
+__exportStar(require("./veoVideo"), exports);
+__exportStar(require("./backgroundRemoval"), exports);
+__exportStar(require("./imageToVideo"), exports);
 // Health check function
 exports.healthCheck = functions.https.onRequest(async (_req, res) => {
     res.status(200).json({

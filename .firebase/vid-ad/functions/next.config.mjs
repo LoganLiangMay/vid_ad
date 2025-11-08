@@ -1,4 +1,4 @@
-// next.config.mjs
+// ../next.config.mjs
 var nextConfig = {
   // Dynamic rendering enabled for API routes and authentication
   // Note: Deploy with Firebase Functions or Cloud Run for full functionality
