@@ -201,7 +201,6 @@ export default function ReviewStep({ form, creativeDirection, onCreativeDirectio
             💡 Tip: Be specific about settings, angles, mood, and visual style you envision
           </p>
         </div>
-      </div>
     </div>
   );
 }
