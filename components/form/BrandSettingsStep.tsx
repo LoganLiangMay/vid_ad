@@ -31,36 +31,56 @@ export default function BrandSettingsStep({ form }: BrandSettingsStepProps) {
   const productDescription = watch('productDescription');
 
   const [isGeneratingLogo, setIsGeneratingLogo] = useState(false);
-  const [generatedLogoUrl, _setGeneratedLogoUrl] = useState<string | null>(null);
+  const [generatedLogos, setGeneratedLogos] = useState<string[]>([]);
+  const [selectedLogoIndex, setSelectedLogoIndex] = useState<number | null>(null);
   const [logoError, setLogoError] = useState<string | null>(null);
 
   const handleGenerateLogo = async () => {
     setIsGeneratingLogo(true);
     setLogoError(null);
+    setGeneratedLogos([]);
+    setSelectedLogoIndex(null);
 
     try {
       // Create a prompt for logo generation based on form data
       const logoPrompt = `Create a professional logo for "${productName}". ${productDescription}. Brand tone: ${selectedTone}. Primary color: ${primaryColor}. Style: modern, clean, simple, suitable for a brand logo.`;
 
       // TODO: Integrate with actual AI logo generation service (e.g., DALL-E, Midjourney, or "nano banana")
-      // For now, we'll simulate the API call
-      console.log('Generating logo with prompt:', logoPrompt);
+      // For now, we'll simulate the API call for 3 logos
+      console.log('Generating 3 logos with prompt:', logoPrompt);
 
       // Simulated API call - replace with actual AI service
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // In production, this would make 3 API calls or request 3 variations
+      await new Promise(resolve => setTimeout(resolve, 3000));
 
-      // Placeholder: In production, this would be the URL returned from the AI service
-      // Example: const response = await fetch('/api/generate-logo', { method: 'POST', body: JSON.stringify({ prompt: logoPrompt }) });
+      // Placeholder: In production, this would be the URLs returned from the AI service
+      // Example:
+      // const response = await fetch('/api/generate-logo', {
+      //   method: 'POST',
+      //   body: JSON.stringify({ prompt: logoPrompt, count: 3 })
+      // });
       // const data = await response.json();
-      // setGeneratedLogoUrl(data.imageUrl);
+      // setGeneratedLogos(data.logoUrls);
 
       // For now, show a message that the feature is coming soon
-      setLogoError('AI Logo Generation coming soon! This will generate a logo based on your product info and brand settings.');
+      setLogoError('AI Logo Generation coming soon! When active, this will generate 3 unique logo variations based on your product info and brand settings.');
     } catch (error) {
-      console.error('Error generating logo:', error);
-      setLogoError('Failed to generate logo. Please try again or upload your own logo.');
+      console.error('Error generating logos:', error);
+      setLogoError('Failed to generate logos. Please try again or upload your own logo.');
     } finally {
       setIsGeneratingLogo(false);
+    }
+  };
+
+  const handleSelectLogo = (index: number) => {
+    setSelectedLogoIndex(index);
+  };
+
+  const handleUseLogo = () => {
+    if (selectedLogoIndex !== null && generatedLogos[selectedLogoIndex]) {
+      // TODO: Set the selected logo as the form's logo
+      console.log('Using logo:', generatedLogos[selectedLogoIndex]);
+      // This would typically save the logo URL to the form or upload it
     }
   };
 
@@ -174,14 +194,14 @@ export default function BrandSettingsStep({ form }: BrandSettingsStepProps) {
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                   </svg>
-                  Generating Logo...
+                  Generating 3 Logos...
                 </>
               ) : (
                 <>
                   <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                   </svg>
-                  Generate Logo with AI
+                  Generate 3 Logos with AI
                 </>
               )}
             </button>
@@ -192,24 +212,63 @@ export default function BrandSettingsStep({ form }: BrandSettingsStepProps) {
             ) : null}
           </div>
 
-          {/* Generated Logo Preview */}
-          {generatedLogoUrl && (
+          {/* Generated Logos Grid */}
+          {generatedLogos.length > 0 && (
             <div className="mb-4 p-4 border-2 border-[#41b6e6] rounded-lg bg-blue-50">
-              <p className="text-sm font-medium text-[#111827] mb-2">Generated Logo</p>
-              <img src={generatedLogoUrl} alt="Generated logo" className="max-h-32 mx-auto" />
-              <div className="mt-3 flex justify-center space-x-2">
+              <p className="text-sm font-medium text-[#111827] mb-4">Select Your Favorite Logo</p>
+
+              {/* 3 Logo Grid */}
+              <div className="grid grid-cols-3 gap-4 mb-4">
+                {generatedLogos.map((logoUrl, index) => (
+                  <button
+                    key={index}
+                    type="button"
+                    onClick={() => handleSelectLogo(index)}
+                    className={`relative p-4 border-2 rounded-lg transition-all hover:shadow-md ${
+                      selectedLogoIndex === index
+                        ? 'border-[#41b6e6] bg-white shadow-lg'
+                        : 'border-gray-300 bg-white hover:border-gray-400'
+                    }`}
+                  >
+                    <img
+                      src={logoUrl}
+                      alt={`Generated logo option ${index + 1}`}
+                      className="w-full h-32 object-contain"
+                    />
+                    {selectedLogoIndex === index && (
+                      <div className="absolute top-2 right-2 bg-[#41b6e6] rounded-full p-1">
+                        <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                          <path
+                            fillRule="evenodd"
+                            d="M16.704 4.153a1 1 0 01.143 1.052l-8 10.5a1 1 0 01-1.127.075l-4.5-4.5a1 1 0 011.06-1.06l3.894 3.893 7.48-9.817a1 1 0 011.05-.143z"
+                            clipRule="evenodd"
+                          />
+                        </svg>
+                      </div>
+                    )}
+                    <p className="mt-2 text-xs text-[#5b6068] text-center font-medium">
+                      Option {index + 1}
+                    </p>
+                  </button>
+                ))}
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex justify-center space-x-3">
                 <button
                   type="button"
-                  className="px-3 py-1 text-xs font-medium text-[#41b6e6] border border-[#41b6e6] rounded hover:bg-blue-50 transition-colors"
+                  className="px-4 py-2 text-sm font-medium text-[#41b6e6] border border-[#41b6e6] rounded-lg hover:bg-white transition-colors"
                   onClick={handleGenerateLogo}
                 >
-                  Regenerate
+                  Regenerate All
                 </button>
                 <button
                   type="button"
-                  className="px-3 py-1 text-xs font-medium text-white bg-[#41b6e6] rounded hover:bg-[#3aa5d5] transition-colors"
+                  disabled={selectedLogoIndex === null}
+                  onClick={handleUseLogo}
+                  className="px-4 py-2 text-sm font-medium text-white bg-[#41b6e6] rounded-lg hover:bg-[#3aa5d5] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
-                  Use This Logo
+                  {selectedLogoIndex !== null ? `Use Option ${selectedLogoIndex + 1}` : 'Select a Logo'}
                 </button>
               </div>
             </div>
