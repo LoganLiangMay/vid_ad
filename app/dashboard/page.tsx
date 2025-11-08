@@ -41,16 +41,17 @@ export default function DashboardPage() {
 
       try {
         setLoadingCampaigns(true);
-        const response = await fetch('/api/campaigns', {
-          method: 'GET',
-          headers: { 'Content-Type': 'application/json' },
-        });
 
-        const data = await response.json();
+        // Use Firebase Cloud Function directly (same as campaigns page)
+        const { httpsCallable } = await import('firebase/functions');
+        const { functions } = await import('@/lib/firebase/config');
 
-        if (data.success && data.campaigns) {
+        const getUserCampaignsFn = httpsCallable(functions, 'getUserCampaigns');
+        const result = await getUserCampaignsFn() as any;
+
+        if (result.data.success && result.data.campaigns) {
           // Sort by most recent first
-          const sortedCampaigns = data.campaigns.sort((a: Campaign, b: Campaign) =>
+          const sortedCampaigns = result.data.campaigns.sort((a: Campaign, b: Campaign) =>
             (b.updatedAt || b.createdAt) - (a.updatedAt || a.createdAt)
           );
           setCampaigns(sortedCampaigns);
