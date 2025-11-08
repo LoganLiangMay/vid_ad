@@ -30,43 +30,58 @@ export default function BrandSettingsStep({ form }: BrandSettingsStepProps) {
   const productName = watch('productName');
   const productDescription = watch('productDescription');
 
+  interface LogoData {
+    url: string;
+    prompt: string;
+    variation: number;
+  }
+
   const [isGeneratingLogo, setIsGeneratingLogo] = useState(false);
-  const [generatedLogos, setGeneratedLogos] = useState<string[]>([]);
+  const [generatedLogos, setGeneratedLogos] = useState<LogoData[]>([]);
   const [selectedLogoIndex, setSelectedLogoIndex] = useState<number | null>(null);
   const [logoError, setLogoError] = useState<string | null>(null);
+  const [basePrompt, setBasePrompt] = useState<string>('');
 
   const handleGenerateLogo = async () => {
     setIsGeneratingLogo(true);
     setLogoError(null);
     setGeneratedLogos([]);
     setSelectedLogoIndex(null);
+    setBasePrompt('');
 
     try {
-      // Create a prompt for logo generation based on form data
-      const logoPrompt = `Create a professional logo for "${productName}". ${productDescription}. Brand tone: ${selectedTone}. Primary color: ${primaryColor}. Style: modern, clean, simple, suitable for a brand logo.`;
+      console.log('🍌 Calling logo generation API...');
 
-      // TODO: Integrate with actual AI logo generation service (e.g., DALL-E, Midjourney, or "nano banana")
-      // For now, we'll simulate the API call for 3 logos
-      console.log('Generating 3 logos with prompt:', logoPrompt);
+      const response = await fetch('/api/generate-logo', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          productName,
+          productDescription: productDescription || '',
+          brandTone: selectedTone,
+          primaryColor,
+        }),
+      });
 
-      // Simulated API call - replace with actual AI service
-      // In production, this would make 3 API calls or request 3 variations
-      await new Promise(resolve => setTimeout(resolve, 3000));
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to generate logos');
+      }
 
-      // Placeholder: In production, this would be the URLs returned from the AI service
-      // Example:
-      // const response = await fetch('/api/generate-logo', {
-      //   method: 'POST',
-      //   body: JSON.stringify({ prompt: logoPrompt, count: 3 })
-      // });
-      // const data = await response.json();
-      // setGeneratedLogos(data.logoUrls);
+      const data = await response.json();
 
-      // For now, show a message that the feature is coming soon
-      setLogoError('AI Logo Generation coming soon! When active, this will generate 3 unique logo variations based on your product info and brand settings.');
-    } catch (error) {
-      console.error('Error generating logos:', error);
-      setLogoError('Failed to generate logos. Please try again or upload your own logo.');
+      if (data.success && data.logos) {
+        console.log('✅ Logos generated successfully:', data.logos);
+        setGeneratedLogos(data.logos);
+        setBasePrompt(data.basePrompt);
+      } else {
+        throw new Error('Invalid response from logo generation API');
+      }
+    } catch (error: any) {
+      console.error('❌ Error generating logos:', error);
+      setLogoError(error.message || 'Failed to generate logos. Please try again or upload your own logo.');
     } finally {
       setIsGeneratingLogo(false);
     }
@@ -78,9 +93,11 @@ export default function BrandSettingsStep({ form }: BrandSettingsStepProps) {
 
   const handleUseLogo = () => {
     if (selectedLogoIndex !== null && generatedLogos[selectedLogoIndex]) {
-      // TODO: Set the selected logo as the form's logo
-      console.log('Using logo:', generatedLogos[selectedLogoIndex]);
-      // This would typically save the logo URL to the form or upload it
+      const selectedLogo = generatedLogos[selectedLogoIndex];
+      console.log('Using logo:', selectedLogo);
+      // TODO: In production, this would save the logo URL to the form or convert it to a file
+      // For now, we'll just show a confirmation
+      alert(`Logo Option ${selectedLogo.variation} selected! In production, this would be saved to your campaign.`);
     }
   };
 
@@ -215,11 +232,19 @@ export default function BrandSettingsStep({ form }: BrandSettingsStepProps) {
           {/* Generated Logos Grid */}
           {generatedLogos.length > 0 && (
             <div className="mb-4 p-4 border-2 border-[#41b6e6] rounded-lg bg-blue-50">
+              {/* Base Prompt Display */}
+              {basePrompt && (
+                <div className="mb-4 p-3 bg-white rounded-lg border border-gray-200">
+                  <p className="text-xs font-semibold text-[#111827] mb-1">Base Prompt:</p>
+                  <p className="text-xs text-[#5b6068] italic">{basePrompt}</p>
+                </div>
+              )}
+
               <p className="text-sm font-medium text-[#111827] mb-4">Select Your Favorite Logo</p>
 
               {/* 3 Logo Grid */}
               <div className="grid grid-cols-3 gap-4 mb-4">
-                {generatedLogos.map((logoUrl, index) => (
+                {generatedLogos.map((logo, index) => (
                   <button
                     key={index}
                     type="button"
@@ -231,8 +256,8 @@ export default function BrandSettingsStep({ form }: BrandSettingsStepProps) {
                     }`}
                   >
                     <img
-                      src={logoUrl}
-                      alt={`Generated logo option ${index + 1}`}
+                      src={logo.url}
+                      alt={`Generated logo option ${logo.variation}`}
                       className="w-full h-32 object-contain"
                     />
                     {selectedLogoIndex === index && (
@@ -247,11 +272,23 @@ export default function BrandSettingsStep({ form }: BrandSettingsStepProps) {
                       </div>
                     )}
                     <p className="mt-2 text-xs text-[#5b6068] text-center font-medium">
-                      Option {index + 1}
+                      Option {logo.variation}
                     </p>
                   </button>
                 ))}
               </div>
+
+              {/* Selected Logo Prompt */}
+              {selectedLogoIndex !== null && generatedLogos[selectedLogoIndex] && (
+                <div className="mb-4 p-3 bg-white rounded-lg border border-[#41b6e6]">
+                  <p className="text-xs font-semibold text-[#111827] mb-1">
+                    Prompt for Option {generatedLogos[selectedLogoIndex].variation}:
+                  </p>
+                  <p className="text-xs text-[#5b6068] italic">
+                    {generatedLogos[selectedLogoIndex].prompt}
+                  </p>
+                </div>
+              )}
 
               {/* Action Buttons */}
               <div className="flex justify-center space-x-3">
@@ -268,7 +305,9 @@ export default function BrandSettingsStep({ form }: BrandSettingsStepProps) {
                   onClick={handleUseLogo}
                   className="px-4 py-2 text-sm font-medium text-white bg-[#41b6e6] rounded-lg hover:bg-[#3aa5d5] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
-                  {selectedLogoIndex !== null ? `Use Option ${selectedLogoIndex + 1}` : 'Select a Logo'}
+                  {selectedLogoIndex !== null && generatedLogos[selectedLogoIndex]
+                    ? `Use Option ${generatedLogos[selectedLogoIndex].variation}`
+                    : 'Select a Logo'}
                 </button>
               </div>
             </div>
