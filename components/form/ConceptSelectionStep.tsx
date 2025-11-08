@@ -27,6 +27,7 @@ interface ConceptSelectionStepProps {
   onSelectConcept: (concept: Concept | ImageConcept) => void;
   numberOfScenes: number;
   onNumberOfScenesChange: (num: number) => void;
+  form?: any; // Optional form object for saving to form data
 }
 
 export default function ConceptSelectionStep({
@@ -36,11 +37,16 @@ export default function ConceptSelectionStep({
   onSelectConcept,
   numberOfScenes,
   onNumberOfScenesChange,
+  form,
 }: ConceptSelectionStepProps) {
   const [concepts, setConcepts] = useState<Concept[]>([]);
   const [imageConcepts, setImageConcepts] = useState<ImageConcept[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Check if we have cached concept images from previous generation
+  const cachedConceptImages = (formData as any).conceptImages || [];
+  const hasCachedConcepts = cachedConceptImages.length > 0;
 
   // New state for image-to-video workflow
   const [uploadedImageUrl, setUploadedImageUrl] = useState<string>('');
@@ -58,7 +64,12 @@ export default function ConceptSelectionStep({
   const isImageToVideo = formData.workflow === VideoWorkflow.IMAGE_TO_VIDEO;
 
   useEffect(() => {
-    if (isImageToVideo) {
+    // Load cached concepts if available, otherwise generate new ones
+    if (hasCachedConcepts && isImageToVideo) {
+      console.log('📦 Loading cached concept images from form data');
+      setImageConcepts(cachedConceptImages);
+      setIsLoading(false);
+    } else if (isImageToVideo) {
       generateImageConcepts();
     } else {
       generateConcepts();
@@ -223,6 +234,12 @@ export default function ConceptSelectionStep({
       }));
 
       setImageConcepts(imageConceptsData);
+
+      // Save to form data for persistence
+      if (form) {
+        form.setValue('conceptImages', imageConceptsData);
+      }
+
       console.log('✅ Generated image concepts:', imageConceptsData);
     } catch (err) {
       console.error('❌ Error generating image concepts:', err);
@@ -539,8 +556,16 @@ export default function ConceptSelectionStep({
                 </div>
               </div>
 
-              {/* Display Value */}
-              <div className="flex-shrink-0 bg-white rounded-lg px-6 py-3 border-2 border-purple-600 shadow-lg">
+              {/* Display Value with Loading Overlay */}
+              <div className="flex-shrink-0 bg-white rounded-lg px-6 py-3 border-2 border-purple-600 shadow-lg relative">
+                {isAdaptingScenes && (
+                  <div className="absolute inset-0 bg-white bg-opacity-90 rounded-lg flex items-center justify-center">
+                    <div className="text-center">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto mb-1"></div>
+                      <span className="text-xs text-purple-600 font-medium">Adapting...</span>
+                    </div>
+                  </div>
+                )}
                 <div className="text-3xl font-bold text-purple-600 text-center">
                   {numberOfScenes}
                 </div>
@@ -548,25 +573,6 @@ export default function ConceptSelectionStep({
                   scenes
                 </div>
               </div>
-            </div>
-
-            {/* Quick Select Buttons */}
-            <div className="flex gap-2 mt-4">
-              <span className="text-sm text-gray-600 flex items-center">Quick select:</span>
-              {[3, 5, 7, 10].map((num) => (
-                <button
-                  key={num}
-                  type="button"
-                  onClick={() => onNumberOfScenesChange(num)}
-                  className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
-                    numberOfScenes === num
-                      ? 'bg-purple-600 text-white'
-                      : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
-                  }`}
-                >
-                  {num}
-                </button>
-              ))}
             </div>
 
             {/* Info text */}
