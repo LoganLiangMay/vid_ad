@@ -14,6 +14,7 @@ export * from './campaigns';
 export * from './s3Upload';
 export * from './sceneGeneration';
 export * from './conceptGeneration';
+export * from './conceptAdaptation';
 export * from './klingVideo';
 export * from './veoVideo';
 export * from './backgroundRemoval';

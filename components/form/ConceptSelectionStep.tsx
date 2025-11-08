@@ -50,6 +50,10 @@ export default function ConceptSelectionStep({
   const [editedPrompts, setEditedPrompts] = useState<Record<string, string>>({});
   const [regeneratingImageId, setRegeneratingImageId] = useState<string | null>(null);
 
+  // State for scene adaptation
+  const [isAdaptingScenes, setIsAdaptingScenes] = useState(false);
+  const [initialSceneCount, setInitialSceneCount] = useState<number>(5);
+
   // Determine which workflow is selected
   const isImageToVideo = formData.workflow === VideoWorkflow.IMAGE_TO_VIDEO;
 
@@ -60,6 +64,15 @@ export default function ConceptSelectionStep({
       generateConcepts();
     }
   }, []);
+
+  // Auto-adapt scenes when numberOfScenes changes
+  useEffect(() => {
+    // Only adapt if concepts are loaded and scene count actually changed
+    if (!isLoading && concepts.length > 0 && numberOfScenes !== initialSceneCount) {
+      console.log(`🔄 Scene count changed from ${initialSceneCount} to ${numberOfScenes}, adapting all concepts...`);
+      adaptConceptsToSceneCount(numberOfScenes);
+    }
+  }, [numberOfScenes]);
 
   const generateConcepts = async () => {
     setIsLoading(true);
@@ -92,12 +105,76 @@ export default function ConceptSelectionStep({
       }
 
       setConcepts(data.concepts);
+      // Set initial scene count from first concept
+      if (data.concepts.length > 0 && data.concepts[0].sceneBreakdown) {
+        setInitialSceneCount(data.concepts[0].sceneBreakdown.length);
+      }
       console.log('✅ Generated concepts:', data.concepts);
     } catch (err) {
       console.error('❌ Error generating concepts:', err);
       setError(err instanceof Error ? err.message : 'Failed to generate concepts');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const adaptConceptsToSceneCount = async (newSceneCount: number) => {
+    if (isAdaptingScenes) return; // Prevent multiple simultaneous adaptations
+
+    setIsAdaptingScenes(true);
+    console.log(`🤖 Using OpenAI to adapt ${concepts.length} concepts to ${newSceneCount} scenes...`);
+
+    try {
+      const adaptedConcepts = await Promise.all(
+        concepts.map(async (concept) => {
+          try {
+            const response = await fetch(
+              'https://us-central1-vid-ad.cloudfunctions.net/adaptSceneBreakdown',
+              {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  concept: {
+                    tagline: concept.tagline,
+                    narrativeArc: concept.narrativeArc,
+                    visualStyle: concept.visualStyle,
+                    targetEmotion: concept.targetEmotion,
+                    currentScenes: concept.sceneBreakdown,
+                  },
+                  targetSceneCount: newSceneCount,
+                  productName: formData.productName,
+                  duration: formData.duration,
+                }),
+              }
+            );
+
+            const data = await response.json();
+
+            if (!data.success) {
+              console.warn(`⚠️ Failed to adapt concept ${concept.id}:`, data.error);
+              // Return original concept if adaptation fails
+              return concept;
+            }
+
+            console.log(`✅ Adapted concept "${concept.tagline}" to ${newSceneCount} scenes`);
+            return {
+              ...concept,
+              sceneBreakdown: data.adaptedScenes,
+            };
+          } catch (err) {
+            console.error(`❌ Error adapting concept ${concept.id}:`, err);
+            return concept; // Return original on error
+          }
+        })
+      );
+
+      setConcepts(adaptedConcepts);
+      setInitialSceneCount(newSceneCount);
+      console.log('✅ All concepts adapted successfully');
+    } catch (err) {
+      console.error('❌ Error during scene adaptation:', err);
+    } finally {
+      setIsAdaptingScenes(false);
     }
   };
 
