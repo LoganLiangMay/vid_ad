@@ -18,23 +18,24 @@ export default function ReviewStep({ form, creativeDirection, onCreativeDirectio
   const workflow = formData.workflow || VideoWorkflow.IMAGE_TO_VIDEO;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div>
         <h2 className="text-2xl font-semibold text-gray-900 mb-2">Choose Your Flow</h2>
         <p className="text-gray-600">Select how you want to create your video ad</p>
       </div>
 
-      <div className="space-y-6">
-        {/* Workflow Selection */}
-        <div className="bg-gradient-to-r from-blue-50 to-purple-50 border-2 border-purple-300 rounded-lg p-6">
-          <div className="mb-4">
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">Select Your Workflow</h3>
-            <p className="text-sm text-gray-600">
-              Choose how you want to create your video ad
-            </p>
-          </div>
+      {/* Workflow Selection */}
+      <div>
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Select Your Workflow *
+          </label>
+          <p className="text-xs text-gray-500">
+            Choose how you want to create your video ad
+          </p>
+        </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* Workflow 1: Image-to-Video */}
             <div
               onClick={() => setValue('workflow', VideoWorkflow.IMAGE_TO_VIDEO)}
@@ -174,49 +175,29 @@ export default function ReviewStep({ form, creativeDirection, onCreativeDirectio
             </div>
           </div>
 
-          <div className="mt-4 p-3 bg-white border border-purple-200 rounded-lg">
-            <p className="text-xs text-gray-600">
-              💡 <strong>Note:</strong> Choose the workflow that best fits your needs. You can always try different workflows later.
-            </p>
-          </div>
+          <p className="mt-3 text-xs text-gray-500">
+            💡 Choose the workflow that best fits your needs. You can always try different workflows later.
+          </p>
         </div>
 
         {/* Creative Direction (Optional) */}
-        <div className="bg-purple-50 border-2 border-purple-200 rounded-lg p-6">
-          <div className="flex items-start mb-3">
-            <svg
-              className="flex-shrink-0 h-6 w-6 text-purple-600 mt-0.5 mr-3"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
-              />
-            </svg>
-            <div className="flex-1">
-              <h3 className="font-medium text-purple-900 mb-1">
-                Creative Direction (Optional)
-              </h3>
-              <p className="text-sm text-purple-700">
-                Share your vision! Describe what you want to see in your ad. Our AI will use this to generate
-                concepts tailored to your direction.
-              </p>
-            </div>
-          </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Creative Direction (Optional)
+          </label>
+          <p className="text-xs text-gray-500 mb-3">
+            Share your vision! Describe what you want to see in your ad. Our AI will use this to generate concepts tailored to your direction.
+          </p>
 
           <textarea
             value={creativeDirection}
             onChange={(e) => onCreativeDirectionChange(e.target.value)}
             placeholder='Example: "Generate an ad with a clothing photoshoot showing different angles. Make it outdoors with natural lighting and a beach setting. Show the model in motion with dynamic poses."'
             rows={4}
-            className="w-full px-4 py-3 border-2 border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-gray-900 placeholder-gray-500 resize-none"
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 placeholder-gray-400 resize-none"
           />
 
-          <p className="text-xs text-purple-600 mt-2">
+          <p className="text-xs text-gray-500 mt-2">
             💡 Tip: Be specific about settings, angles, mood, and visual style you envision
           </p>
         </div>
