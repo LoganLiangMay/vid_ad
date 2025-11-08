@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { UseFormReturn } from 'react-hook-form';
 import { AdGenerationFormData, BrandTone } from '@/lib/schemas/adGenerationSchema';
 
@@ -44,6 +44,15 @@ export default function BrandSettingsStep({ form }: BrandSettingsStepProps) {
   const [logoError, setLogoError] = useState<string | null>(null);
   const [basePrompt, setBasePrompt] = useState<string>('');
 
+  // Debug: Log when component mounts and when logo data changes
+  useEffect(() => {
+    console.log('🎨 BrandSettingsStep: generatedLogos count:', generatedLogos.length);
+    console.log('🎨 BrandSettingsStep: selectedLogoIndex:', selectedLogoIndex);
+    if (generatedLogos.length > 0) {
+      console.log('🎨 BrandSettingsStep: First logo URL:', generatedLogos[0]?.url?.substring(0, 50));
+    }
+  }, [generatedLogos, selectedLogoIndex]);
+
   const handleGenerateLogo = async () => {
     setIsGeneratingLogo(true);
     setLogoError(null);
@@ -83,8 +92,15 @@ export default function BrandSettingsStep({ form }: BrandSettingsStepProps) {
         });
 
         // Save to form data for persistence
+        console.log('💾 Saving logos to form data:', data.logos.length, 'logos');
         setValue('generatedLogos', data.logos);
         setBasePrompt(data.basePrompt);
+
+        // Verify the data was saved
+        setTimeout(() => {
+          const savedLogos = form.getValues('generatedLogos');
+          console.log('✅ Verified saved logos:', savedLogos?.length || 0, 'logos');
+        }, 100);
       } else {
         throw new Error('Invalid response from logo generation API');
       }
@@ -101,12 +117,14 @@ export default function BrandSettingsStep({ form }: BrandSettingsStepProps) {
   };
 
   const handleUseLogo = () => {
-    if (selectedLogoIndex !== null && typeof selectedLogoIndex === 'number' && generatedLogos[selectedLogoIndex]) {
+    if (selectedLogoIndex !== null && selectedLogoIndex !== undefined && typeof selectedLogoIndex === 'number') {
       const selectedLogo = generatedLogos[selectedLogoIndex];
-      console.log('Using logo:', selectedLogo);
-      // TODO: In production, this would save the logo URL to the form or convert it to a file
-      // For now, we'll just show a confirmation
-      alert(`Logo Option ${selectedLogo.variation} selected! In production, this would be saved to your campaign.`);
+      if (selectedLogo) {
+        console.log('Using logo:', selectedLogo);
+        // TODO: In production, this would save the logo URL to the form or convert it to a file
+        // For now, we'll just show a confirmation
+        alert(`Logo Option ${selectedLogo.variation} selected! In production, this would be saved to your campaign.`);
+      }
     }
   };
 
@@ -288,7 +306,7 @@ export default function BrandSettingsStep({ form }: BrandSettingsStepProps) {
               </div>
 
               {/* Selected Logo Prompt */}
-              {selectedLogoIndex !== null && generatedLogos[selectedLogoIndex] && (
+              {selectedLogoIndex !== null && typeof selectedLogoIndex === 'number' && generatedLogos[selectedLogoIndex] && (
                 <div className="mb-4 p-3 bg-white rounded-lg border border-[#41b6e6]">
                   <p className="text-xs font-semibold text-[#111827] mb-1">
                     Prompt for Option {generatedLogos[selectedLogoIndex].variation}:
@@ -314,7 +332,7 @@ export default function BrandSettingsStep({ form }: BrandSettingsStepProps) {
                   onClick={handleUseLogo}
                   className="px-4 py-2 text-sm font-medium text-white bg-[#41b6e6] rounded-lg hover:bg-[#3aa5d5] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
-                  {selectedLogoIndex !== null && generatedLogos[selectedLogoIndex]
+                  {selectedLogoIndex !== null && typeof selectedLogoIndex === 'number' && generatedLogos[selectedLogoIndex]
                     ? `Use Option ${generatedLogos[selectedLogoIndex].variation}`
                     : 'Select a Logo'}
                 </button>
