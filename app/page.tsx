@@ -8,10 +8,10 @@ export default function HomePage() {
 
       <main>
         {/* Announcement Banner */}
-        <div className="bg-muted border-b border-border">
+        <div className="bg-gray-50 border-b border-gray-200">
           <div className="max-w-[1120px] mx-auto px-4 sm:px-6 lg:px-8 py-4">
             <div className="text-center">
-              <span className="inline-block bg-white border border-border px-4 py-1.5 rounded-full text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              <span className="inline-block bg-white border border-gray-200 px-4 py-1.5 rounded-full text-xs font-semibold uppercase tracking-wider text-[#5b6068]">
                 New Chapter
               </span>
             </div>
@@ -22,16 +22,16 @@ export default function HomePage() {
         <section className="py-16 sm:py-24">
           <div className="max-w-[1120px] mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center">
-              <h1 className="font-display text-4xl sm:text-5xl md:text-6xl font-bold text-foreground mb-6 leading-tight">
+              <h1 className="font-display text-4xl sm:text-5xl md:text-6xl font-bold text-[#111827] mb-6 leading-tight">
                 Marin Software enters its{' '}
-                <span className="text-primary">AI-first era</span>{' '}
+                <span className="text-[#41b6e6]">AI-first era</span>{' '}
                 with Zax Capital
               </h1>
-              <p className="text-lg sm:text-xl text-foreground max-w-3xl mx-auto mb-4">
+              <p className="text-lg sm:text-xl text-[#111827] max-w-3xl mx-auto mb-4">
                 We&apos;re building the next generation of performance marketing—{' '}
                 <strong>AI that plans, optimizes, and learns</strong> with every campaign.
               </p>
-              <p className="text-lg sm:text-xl text-muted-foreground max-w-3xl mx-auto mb-12">
+              <p className="text-lg sm:text-xl text-[#5b6068] max-w-3xl mx-auto mb-12">
                 The acquisition accelerates our roadmap and unlocks what&apos;s next.
               </p>
 
@@ -39,13 +39,13 @@ export default function HomePage() {
               <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16">
                 <Link
                   href="/auth/signup"
-                  className="inline-flex items-center justify-center bg-primary text-white px-8 py-3.5 rounded-lg font-semibold hover:bg-primary/90 transition-colors text-base"
+                  className="inline-flex items-center justify-center bg-[#41b6e6] text-white px-8 py-3.5 rounded-lg font-semibold hover:bg-[#3aa5d5] transition-colors text-base"
                 >
                   Get Started
                 </Link>
                 <Link
                   href="/image-to-video"
-                  className="inline-flex items-center justify-center bg-foreground text-white px-8 py-3.5 rounded-lg font-semibold hover:bg-foreground/90 transition-colors text-base"
+                  className="inline-flex items-center justify-center bg-[#111827] text-white px-8 py-3.5 rounded-lg font-semibold hover:bg-[#111827]/90 transition-colors text-base"
                 >
                   Image to Video
                 </Link>
@@ -55,7 +55,7 @@ export default function HomePage() {
         </section>
 
         {/* Feature Cards */}
-        <section className="py-16 bg-muted/30">
+        <section className="py-16 bg-gray-50">
           <div className="max-w-[1120px] mx-auto px-4 sm:px-6 lg:px-8">
             <div className="grid gap-6 md:grid-cols-3">
               <FeatureCard
@@ -77,13 +77,13 @@ export default function HomePage() {
         {/* Additional Info Section */}
         <section className="py-16">
           <div className="max-w-[1120px] mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <p className="text-muted-foreground mb-8">
+            <p className="text-[#5b6068] mb-8">
               More updates are on the way—including early access invites.
             </p>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-[#5b6068]">
               If you are a shareholder with questions, please contact:{' '}
               <strong>Armanino (Administrator)</strong> —{' '}
-              <a href="mailto:marinsoftware@armanino.com" className="text-primary hover:underline">
+              <a href="mailto:marinsoftware@armanino.com" className="text-[#41b6e6] hover:underline">
                 marinsoftware@armanino.com
               </a>
             </p>
@@ -102,9 +102,9 @@ function FeatureCard({
   description: string;
 }) {
   return (
-    <div className="bg-white border border-border rounded-xl p-8 text-center hover:shadow-lg transition-shadow">
-      <h3 className="font-display text-xl font-bold text-foreground mb-2">{title}</h3>
-      <p className="text-muted-foreground">{description}</p>
+    <div className="bg-white border border-gray-200 rounded-xl p-8 text-center hover:shadow-lg transition-shadow">
+      <h3 className="font-display text-xl font-bold text-[#111827] mb-2">{title}</h3>
+      <p className="text-[#5b6068]">{description}</p>
     </div>
   );
 }

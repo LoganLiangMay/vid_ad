@@ -10,7 +10,7 @@ interface HeaderProps {
 
 export default function Header({ user, onLogout, showAuth = true }: HeaderProps) {
   return (
-    <header className="bg-white border-b border-border">
+    <header className="bg-white border-b border-gray-200">
       <div className="max-w-[1120px] mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
@@ -20,7 +20,7 @@ export default function Header({ user, onLogout, showAuth = true }: HeaderProps)
                 <path d="M8 32L20 8L32 32H8Z" fill="#41b6e6"/>
                 <path d="M14 32L20 20L26 32H14Z" fill="#111827"/>
               </svg>
-              <span className="font-display text-2xl font-semibold text-foreground">Marin</span>
+              <span className="font-display text-2xl font-semibold text-[#111827]">Marin</span>
             </div>
           </Link>
 
@@ -29,10 +29,10 @@ export default function Header({ user, onLogout, showAuth = true }: HeaderProps)
             <div className="flex items-center space-x-6">
               {user ? (
                 <>
-                  <span className="text-sm text-muted-foreground">{user.email}</span>
+                  <span className="text-sm text-[#5b6068]">{user.email}</span>
                   <button
                     onClick={onLogout}
-                    className="text-sm font-medium text-foreground hover:text-primary transition-colors"
+                    className="text-sm font-medium text-[#111827] hover:text-[#41b6e6] transition-colors"
                   >
                     Logout
                   </button>
@@ -41,13 +41,13 @@ export default function Header({ user, onLogout, showAuth = true }: HeaderProps)
                 <>
                   <Link
                     href="/auth/login"
-                    className="text-sm font-medium text-foreground hover:text-primary transition-colors"
+                    className="text-sm font-medium text-[#111827] hover:text-[#41b6e6] transition-colors"
                   >
                     Sign In
                   </Link>
                   <Link
                     href="/auth/signup"
-                    className="text-sm font-medium bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors"
+                    className="text-sm font-medium bg-[#41b6e6] text-white px-4 py-2 rounded-lg hover:bg-[#3aa5d5] transition-colors"
                   >
                     Get Started
                   </Link>

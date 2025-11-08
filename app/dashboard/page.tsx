@@ -133,39 +133,34 @@ export default function DashboardPage() {
         <div className="mb-12 text-center">
           <button
             onClick={() => router.push('/generate?new=true')}
-            className="bg-primary hover:bg-primary/90 text-white font-bold text-xl py-6 px-12 rounded-xl transition-all transform hover:scale-105 shadow-lg hover:shadow-xl mb-4 inline-flex items-center space-x-3"
+            className="bg-[#41b6e6] hover:bg-[#3aa5d5] text-white font-bold text-xl py-6 px-12 rounded-xl transition-all transform hover:scale-105 shadow-lg hover:shadow-xl inline-flex items-center space-x-3"
           >
             <span className="text-3xl">🎬</span>
             <span>Generate New Video</span>
           </button>
-          <div>
-            <button className="text-muted-foreground hover:text-foreground font-semibold text-base underline transition-colors">
-              📚 Browse Templates
-            </button>
-          </div>
         </div>
 
         {/* Dashboard Grid */}
         <div className="mb-12">
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {/* Campaigns Card */}
-            <div className="bg-white border border-border rounded-xl p-6 hover:shadow-lg transition-shadow">
-              <dt className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
+            <div className="bg-white border border-gray-200 rounded-xl p-6 hover:shadow-lg transition-shadow">
+              <dt className="text-sm font-semibold text-[#5b6068] uppercase tracking-wide mb-3">
                 My Campaigns
               </dt>
-              <dd className="text-4xl font-display font-bold text-foreground mb-4">
+              <dd className="text-4xl font-display font-bold text-[#111827] mb-4">
                 {loadingCampaigns ? '...' : campaigns.length}
               </dd>
               <div className="flex flex-col space-y-2">
                 <button
                   onClick={() => router.push('/dashboard/campaigns')}
-                  className="text-sm font-semibold text-primary hover:text-primary/80 transition-colors text-left"
+                  className="text-sm font-semibold text-[#41b6e6] hover:text-[#3aa5d5] transition-colors text-left"
                 >
                   View All →
                 </button>
                 <button
                   onClick={() => router.push('/generate?new=true')}
-                  className="text-sm font-semibold text-primary hover:text-primary/80 transition-colors text-left"
+                  className="text-sm font-semibold text-[#41b6e6] hover:text-[#3aa5d5] transition-colors text-left"
                 >
                   Create New →
                 </button>
@@ -173,26 +168,26 @@ export default function DashboardPage() {
             </div>
 
             {/* Videos Card */}
-            <div className="bg-white border border-border rounded-xl p-6 hover:shadow-lg transition-shadow">
-              <dt className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
+            <div className="bg-white border border-gray-200 rounded-xl p-6 hover:shadow-lg transition-shadow">
+              <dt className="text-sm font-semibold text-[#5b6068] uppercase tracking-wide mb-3">
                 Videos Generated
               </dt>
-              <dd className="text-4xl font-display font-bold text-foreground mb-4">0</dd>
+              <dd className="text-4xl font-display font-bold text-[#111827] mb-4">0</dd>
               <div>
-                <button className="text-sm font-semibold text-primary hover:text-primary/80 transition-colors">
+                <button className="text-sm font-semibold text-[#41b6e6] hover:text-[#3aa5d5] transition-colors">
                   View All Videos →
                 </button>
               </div>
             </div>
 
             {/* Credits Card */}
-            <div className="bg-white border border-border rounded-xl p-6 hover:shadow-lg transition-shadow">
-              <dt className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
+            <div className="bg-white border border-gray-200 rounded-xl p-6 hover:shadow-lg transition-shadow">
+              <dt className="text-sm font-semibold text-[#5b6068] uppercase tracking-wide mb-3">
                 Available Credits
               </dt>
-              <dd className="text-4xl font-display font-bold text-foreground mb-4">100</dd>
+              <dd className="text-4xl font-display font-bold text-[#111827] mb-4">100</dd>
               <div>
-                <button className="text-sm font-semibold text-primary hover:text-primary/80 transition-colors">
+                <button className="text-sm font-semibold text-[#41b6e6] hover:text-[#3aa5d5] transition-colors">
                   Buy More Credits →
                 </button>
               </div>
@@ -200,65 +195,21 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Example Campaigns Section */}
+        {/* My Campaigns */}
         <div className="mb-12">
-          <h3 className="font-display text-2xl font-bold text-foreground mb-6">Example Campaigns</h3>
-          {loadingTemplates ? (
-            <div className="flex justify-center py-12">
-              <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary"></div>
-            </div>
-          ) : templateCampaigns.length === 0 ? (
-            <div className="bg-muted/30 border border-border rounded-xl p-12 text-center">
-              <p className="text-muted-foreground text-lg">
-                No example campaigns available yet. Check back soon!
-              </p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {templateCampaigns.map((template) => (
-                <div
-                  key={template.id}
-                  onClick={() => router.push(`/generate?templateId=${template.id}`)}
-                  className="bg-white border border-border rounded-xl p-6 hover:shadow-lg transition-all cursor-pointer group relative"
-                >
-                  <div className="absolute top-4 right-4">
-                    <span className="bg-blue-100 text-blue-800 text-xs font-semibold px-3 py-1 rounded-full">
-                      Template
-                    </span>
-                  </div>
-                  <div className="mb-3 pr-20">
-                    <h4 className="font-display text-lg font-bold text-foreground group-hover:text-primary transition-colors line-clamp-2">
-                      {template.productName || 'Untitled Template'}
-                    </h4>
-                  </div>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    {template.userEmail ? `By ${template.userEmail.split('@')[0]}` : 'Community template'}
-                  </p>
-                  <div className="flex items-center justify-between text-xs text-muted-foreground">
-                    <span>👁️ View-only</span>
-                    <span className="text-primary font-semibold group-hover:underline">View & Copy →</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* All Campaigns */}
-        <div className="mb-12">
-          <h3 className="font-display text-2xl font-bold text-foreground mb-6">My Campaigns</h3>
+          <h3 className="font-display text-2xl font-bold text-[#111827] mb-6">My Campaigns</h3>
             {loadingCampaigns ? (
               <div className="flex justify-center py-12">
-                <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary"></div>
+                <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#41b6e6]"></div>
               </div>
             ) : campaigns.length === 0 ? (
-              <div className="bg-muted/30 border border-border rounded-xl p-12 text-center">
-                <p className="text-muted-foreground text-lg mb-6">
+              <div className="bg-gray-50 border border-gray-200 rounded-xl p-12 text-center">
+                <p className="text-[#5b6068] text-lg mb-6">
                   No campaigns yet. Create your first video ad!
                 </p>
                 <button
                   onClick={() => router.push('/generate?new=true')}
-                  className="bg-primary hover:bg-primary/90 text-white font-semibold py-3 px-8 rounded-lg transition-colors"
+                  className="bg-[#41b6e6] hover:bg-[#3aa5d5] text-white font-semibold py-3 px-8 rounded-lg transition-colors"
                 >
                   Create Campaign
                 </button>
@@ -269,22 +220,22 @@ export default function DashboardPage() {
                   <div
                     key={campaign.id}
                     onClick={() => router.push(`/generate?campaignId=${campaign.id}`)}
-                    className="bg-white border border-border rounded-xl p-6 hover:shadow-lg transition-all cursor-pointer group"
+                    className="bg-white border border-gray-200 rounded-xl p-6 hover:shadow-lg transition-all cursor-pointer group"
                   >
                     <div className="flex items-start justify-between mb-3">
-                      <h4 className="font-display text-lg font-bold text-foreground group-hover:text-primary transition-colors line-clamp-1">
+                      <h4 className="font-display text-lg font-bold text-[#111827] group-hover:text-[#41b6e6] transition-colors line-clamp-1">
                         {campaign.productName || 'Untitled Campaign'}
                       </h4>
                       <span className={`text-xs font-semibold px-3 py-1 rounded-full ${getStatusColor(campaign.status)}`}>
                         {campaign.status}
                       </span>
                     </div>
-                    <p className="text-sm text-muted-foreground mb-4">
+                    <p className="text-sm text-[#5b6068] mb-4">
                       {campaign.currentStep ? `Step ${campaign.currentStep}` : 'Not started'}
                     </p>
-                    <div className="flex items-center justify-between text-xs text-muted-foreground">
+                    <div className="flex items-center justify-between text-xs text-[#5b6068]">
                       <span>Created: {formatDate(campaign.createdAt)}</span>
-                      <span className="text-primary font-semibold group-hover:underline">Open →</span>
+                      <span className="text-[#41b6e6] font-semibold group-hover:underline">Open →</span>
                     </div>
                   </div>
                 ))}
@@ -292,17 +243,61 @@ export default function DashboardPage() {
             )}
         </div>
 
+        {/* Browse Public Campaigns Section */}
+        <div className="mb-12">
+          <h3 className="font-display text-2xl font-bold text-[#111827] mb-6">Browse Public Campaigns</h3>
+          {loadingTemplates ? (
+            <div className="flex justify-center py-12">
+              <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#41b6e6]"></div>
+            </div>
+          ) : templateCampaigns.length === 0 ? (
+            <div className="bg-gray-50 border border-gray-200 rounded-xl p-12 text-center">
+              <p className="text-[#5b6068] text-lg">
+                No example campaigns available yet. Check back soon!
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {templateCampaigns.map((template) => (
+                <div
+                  key={template.id}
+                  onClick={() => router.push(`/generate?templateId=${template.id}`)}
+                  className="bg-white border border-gray-200 rounded-xl p-6 hover:shadow-lg transition-all cursor-pointer group relative"
+                >
+                  <div className="absolute top-4 right-4">
+                    <span className="bg-blue-100 text-blue-800 text-xs font-semibold px-3 py-1 rounded-full">
+                      Template
+                    </span>
+                  </div>
+                  <div className="mb-3 pr-20">
+                    <h4 className="font-display text-lg font-bold text-[#111827] group-hover:text-[#41b6e6] transition-colors line-clamp-2">
+                      {template.productName || 'Untitled Template'}
+                    </h4>
+                  </div>
+                  <p className="text-sm text-[#5b6068] mb-4">
+                    {template.userEmail ? `By ${template.userEmail.split('@')[0]}` : 'Community template'}
+                  </p>
+                  <div className="flex items-center justify-between text-xs text-[#5b6068]">
+                    <span>👁️ View-only</span>
+                    <span className="text-[#41b6e6] font-semibold group-hover:underline">View & Copy →</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
         {/* Account Info */}
         <div className="mt-12">
-          <div className="bg-primary/5 border border-primary/20 rounded-xl p-6">
+          <div className="bg-[#41b6e6]/5 border border-[#41b6e6]/20 rounded-xl p-6">
             <div className="flex items-start space-x-3">
               <div className="flex-shrink-0">
-                <svg className="h-6 w-6 text-primary" viewBox="0 0 20 20" fill="currentColor">
+                <svg className="h-6 w-6 text-[#41b6e6]" viewBox="0 0 20 20" fill="currentColor">
                   <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
                 </svg>
               </div>
               <div>
-                <p className="text-sm font-medium text-foreground">
+                <p className="text-sm font-medium text-[#111827]">
                   Your session will remain active until you logout.
                 </p>
               </div>
