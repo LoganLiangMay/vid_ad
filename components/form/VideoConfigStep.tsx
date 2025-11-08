@@ -7,7 +7,7 @@ interface VideoConfigStepProps {
   form: UseFormReturn<AdGenerationFormData>;
 }
 
-export default function VideoConfigStep({ form }: VideoConfigStepProps) {
+export default function VideoConfigStep({ form: _form }: VideoConfigStepProps) {
 
   return (
     <div className="space-y-6">
