@@ -144,39 +144,6 @@ export default function DashboardPage() {
         {/* Dashboard Grid */}
         <div className="mb-12">
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {/* Campaigns Card */}
-            <div
-              onClick={() => router.push('/dashboard/campaigns')}
-              className="bg-white border border-gray-200 rounded-xl p-6 hover:shadow-lg transition-shadow cursor-pointer"
-            >
-              <dt className="text-sm font-semibold text-[#5b6068] uppercase tracking-wide mb-3">
-                My Campaigns
-              </dt>
-              <dd className="text-4xl font-display font-bold text-[#111827] mb-4">
-                {loadingCampaigns ? '...' : campaigns.length}
-              </dd>
-              <div className="flex flex-col space-y-2">
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    router.push('/dashboard/campaigns');
-                  }}
-                  className="text-sm font-semibold text-[#41b6e6] hover:text-[#3aa5d5] transition-colors text-left"
-                >
-                  View All →
-                </button>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    router.push('/generate?new=true');
-                  }}
-                  className="text-sm font-semibold text-[#41b6e6] hover:text-[#3aa5d5] transition-colors text-left"
-                >
-                  Create New →
-                </button>
-              </div>
-            </div>
-
             {/* Videos Card */}
             <div className="bg-white border border-gray-200 rounded-xl p-6 hover:shadow-lg transition-shadow">
               <dt className="text-sm font-semibold text-[#5b6068] uppercase tracking-wide mb-3">
@@ -186,6 +153,19 @@ export default function DashboardPage() {
               <div>
                 <button className="text-sm font-semibold text-[#41b6e6] hover:text-[#3aa5d5] transition-colors">
                   View All Videos →
+                </button>
+              </div>
+            </div>
+
+            {/* Images Card */}
+            <div className="bg-white border border-gray-200 rounded-xl p-6 hover:shadow-lg transition-shadow">
+              <dt className="text-sm font-semibold text-[#5b6068] uppercase tracking-wide mb-3">
+                Images Generated
+              </dt>
+              <dd className="text-4xl font-display font-bold text-[#111827] mb-4">0</dd>
+              <div>
+                <button className="text-sm font-semibold text-[#41b6e6] hover:text-[#3aa5d5] transition-colors">
+                  View All Images →
                 </button>
               </div>
             </div>
