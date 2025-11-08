@@ -30,6 +30,10 @@ export default function BrandSettingsStep({ form }: BrandSettingsStepProps) {
   const productName = watch('productName');
   const productDescription = watch('productDescription');
 
+  // Use form data for persistence across steps
+  const generatedLogos = watch('generatedLogos') || [];
+  const selectedLogoIndex = watch('selectedLogoIndex');
+
   interface LogoData {
     url: string;
     prompt: string;
@@ -37,16 +41,14 @@ export default function BrandSettingsStep({ form }: BrandSettingsStepProps) {
   }
 
   const [isGeneratingLogo, setIsGeneratingLogo] = useState(false);
-  const [generatedLogos, setGeneratedLogos] = useState<LogoData[]>([]);
-  const [selectedLogoIndex, setSelectedLogoIndex] = useState<number | null>(null);
   const [logoError, setLogoError] = useState<string | null>(null);
   const [basePrompt, setBasePrompt] = useState<string>('');
 
   const handleGenerateLogo = async () => {
     setIsGeneratingLogo(true);
     setLogoError(null);
-    setGeneratedLogos([]);
-    setSelectedLogoIndex(null);
+    setValue('generatedLogos', []);
+    setValue('selectedLogoIndex', null);
     setBasePrompt('');
 
     try {
@@ -74,7 +76,14 @@ export default function BrandSettingsStep({ form }: BrandSettingsStepProps) {
 
       if (data.success && data.logos) {
         console.log('✅ Logos generated successfully:', data.logos);
-        setGeneratedLogos(data.logos);
+
+        // Debug: Log each logo's url type
+        data.logos.forEach((logo: LogoData, index: number) => {
+          console.log(`Logo ${index + 1} url type:`, typeof logo.url, 'value:', logo.url);
+        });
+
+        // Save to form data for persistence
+        setValue('generatedLogos', data.logos);
         setBasePrompt(data.basePrompt);
       } else {
         throw new Error('Invalid response from logo generation API');
@@ -88,11 +97,11 @@ export default function BrandSettingsStep({ form }: BrandSettingsStepProps) {
   };
 
   const handleSelectLogo = (index: number) => {
-    setSelectedLogoIndex(index);
+    setValue('selectedLogoIndex', index);
   };
 
   const handleUseLogo = () => {
-    if (selectedLogoIndex !== null && generatedLogos[selectedLogoIndex]) {
+    if (selectedLogoIndex !== null && typeof selectedLogoIndex === 'number' && generatedLogos[selectedLogoIndex]) {
       const selectedLogo = generatedLogos[selectedLogoIndex];
       console.log('Using logo:', selectedLogo);
       // TODO: In production, this would save the logo URL to the form or convert it to a file
