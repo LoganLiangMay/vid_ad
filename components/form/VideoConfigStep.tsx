@@ -1,32 +1,13 @@
 'use client';
 
 import { UseFormReturn } from 'react-hook-form';
-import {
-  AdGenerationFormData,
-  VideoOrientation,
-  VideoResolution,
-  VideoFrameRate,
-  ReplicateModel,
-  estimateGenerationCost,
-} from '@/lib/schemas/adGenerationSchema';
+import { AdGenerationFormData } from '@/lib/schemas/adGenerationSchema';
 
 interface VideoConfigStepProps {
   form: UseFormReturn<AdGenerationFormData>;
 }
 
 export default function VideoConfigStep({ form }: VideoConfigStepProps) {
-  const {
-    register,
-    watch,
-  } = form;
-
-  const variations = watch('variations');
-  const duration = watch('duration');
-  const orientation = watch('orientation');
-  const resolution = watch('resolution');
-  const videoModel = watch('videoModel');
-
-  const estimatedCost = estimateGenerationCost(videoModel, duration, variations, resolution);
 
   return (
     <div className="space-y-6">
