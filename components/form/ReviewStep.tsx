@@ -90,39 +90,6 @@ export default function ReviewStep({ form, creativeDirection, onCreativeDirectio
           </dl>
         </div>
 
-        {/* Video Configuration */}
-        <div className="bg-gray-50 rounded-lg p-4">
-          <h3 className="font-medium text-gray-900 mb-3">Video Configuration</h3>
-          <dl className="space-y-2">
-            <div className="flex justify-between">
-              <dt className="text-sm text-gray-600">AI Model:</dt>
-              <dd className="text-sm font-medium text-gray-900">
-                {formData.videoModel === 'seedance-1-pro' ? 'Seedance 1 Pro' : 'Seedance 1 Lite'}
-              </dd>
-            </div>
-            <div className="flex justify-between">
-              <dt className="text-sm text-gray-600">Variations:</dt>
-              <dd className="text-sm font-medium text-gray-900">{formData.variations}</dd>
-            </div>
-            <div className="flex justify-between">
-              <dt className="text-sm text-gray-600">Duration:</dt>
-              <dd className="text-sm font-medium text-gray-900">{formData.duration} seconds</dd>
-            </div>
-            <div className="flex justify-between">
-              <dt className="text-sm text-gray-600">Orientation:</dt>
-              <dd className="text-sm font-medium text-gray-900 capitalize">{formData.orientation}</dd>
-            </div>
-            <div className="flex justify-between">
-              <dt className="text-sm text-gray-600">Resolution:</dt>
-              <dd className="text-sm font-medium text-gray-900 uppercase">{formData.resolution}</dd>
-            </div>
-            <div className="flex justify-between">
-              <dt className="text-sm text-gray-600">Frame Rate:</dt>
-              <dd className="text-sm font-medium text-gray-900">{formData.frameRate} fps</dd>
-            </div>
-          </dl>
-        </div>
-
         {/* Additional Options */}
         <div className="bg-gray-50 rounded-lg p-4">
           <h3 className="font-medium text-gray-900 mb-3">Additional Options</h3>
